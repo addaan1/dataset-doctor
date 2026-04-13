@@ -1,5 +1,12 @@
 # Dataset Doctor
 
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Pandas](https://img.shields.io/badge/pandas-2.x-150458?logo=pandas&logoColor=white)](https://pandas.pydata.org/)
+[![Typer](https://img.shields.io/badge/CLI-Typer-009688)](https://typer.tiangolo.com/)
+[![Jinja2](https://img.shields.io/badge/templates-Jinja2-B41717)](https://jinja.palletsprojects.com/)
+[![Pytest](https://img.shields.io/badge/tests-pytest-0A9EDC?logo=pytest&logoColor=white)](https://pytest.org/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-111827)](LICENSE)
+
 Turn messy CSV files into an instant data health report.
 
 Dataset Doctor is an open-source Python CLI for fast first-pass dataset checks. Point it at a CSV file and it will profile structure, missingness, duplicate rows, semantic column types, numeric distributions, outliers, uniqueness patterns, constant columns, and high-cardinality fields, then generate shareable Markdown and HTML reports.
@@ -117,6 +124,12 @@ Warnings
   - [WARNING] Dataset contains 1 duplicate rows (9.1% of all rows).
   - [WARNING] Column `primary_tag` has 4 missing values (36.4%).
 ```
+
+## HTML preview
+
+This is the visual direction of the generated `report.html` produced by the current template.
+
+![Dataset Doctor HTML report preview](assets/report-preview.svg)
 
 ## Generated reports
 
