@@ -61,6 +61,25 @@ def test_semantic_type_detection_matrix() -> None:
     }
 
 
+def test_numeric_summary_uses_iqr_for_outlier_detection() -> None:
+    dataframe = pd.DataFrame({"value": [10, 12, 13, 14, 100]})
+
+    column = summarize_columns(dataframe)[0]
+    assert column.numeric_summary is not None
+    assert column.numeric_summary.outlier_count == 1
+    assert column.numeric_summary.outlier_pct == 20.0
+    assert column.numeric_summary.upper_bound < 100
+
+
+def test_numeric_summary_skips_outlier_detection_for_small_numeric_samples() -> None:
+    dataframe = pd.DataFrame({"value": [1, 2, 99]})
+
+    column = summarize_columns(dataframe)[0]
+    assert column.numeric_summary is not None
+    assert column.numeric_summary.outlier_count == 0
+    assert column.numeric_summary.outlier_pct == 0.0
+
+
 def test_load_data_raises_for_header_only_csv(tmp_path) -> None:
     csv_path = tmp_path / "empty.csv"
     csv_path.write_text("id,name\n", encoding="utf-8")
@@ -101,7 +120,7 @@ def test_load_data_normalizes_whitespace_only_strings(tmp_path) -> None:
     assert columns["comment"].missing_pct == 50.0
 
 
-def test_profile_dataset_tracks_semantic_type_counts_and_suspicious_order() -> None:
+def test_profile_dataset_tracks_semantic_type_counts_and_outlier_columns() -> None:
     csv_path = Path("data/demo/quotes_to_scrape_doctor_demo.csv")
     dataframe = load_data(csv_path)
 
@@ -113,8 +132,10 @@ def test_profile_dataset_tracks_semantic_type_counts_and_suspicious_order() -> N
         "boolean": 0,
         "datetime": 1,
     }
-    assert profile.suspicious_columns[:4] == [
+    assert profile.outlier_columns == ["tag_count"]
+    assert profile.suspicious_columns[:5] == [
         "primary_tag",
+        "tag_count",
         "quote_id",
         "quote_text",
         "source_site",

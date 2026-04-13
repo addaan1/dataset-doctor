@@ -12,13 +12,14 @@ from pandas.api.types import (
     is_string_dtype,
 )
 
-from dataset_doctor.models import ColumnProfile, DatasetProfile
+from dataset_doctor.models import ColumnProfile, DatasetProfile, NumericSummary
 
 BOOLEAN_TRUE_VALUES = {"true", "t", "yes", "y", "1"}
 BOOLEAN_FALSE_VALUES = {"false", "f", "no", "n", "0"}
 SEMANTIC_TYPE_ORDER = ("categorical", "numeric", "boolean", "datetime")
 HIGH_MISSING_THRESHOLD_PCT = 30.0
 HIGH_CARDINALITY_THRESHOLD = 0.8
+MIN_VALUES_FOR_OUTLIER_DETECTION = 4
 DATE_HINT_PATTERN = re.compile(
     r"[-/:T]|jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec",
     re.IGNORECASE,
@@ -76,6 +77,9 @@ def summarize_columns(df: pd.DataFrame) -> list[ColumnProfile]:
         unique_count = int(non_null.nunique(dropna=True))
         unique_ratio = (unique_count / non_null_count) if non_null_count else 0.0
         semantic_type = _infer_semantic_type(series)
+        numeric_summary = (
+            _build_numeric_summary(series) if semantic_type == "numeric" and non_null_count > 0 else None
+        )
         is_constant = non_null_count > 0 and unique_count == 1
         is_high_cardinality = (
             non_null_count > 0
@@ -97,6 +101,7 @@ def summarize_columns(df: pd.DataFrame) -> list[ColumnProfile]:
                 flagged_missing=missing_pct > HIGH_MISSING_THRESHOLD_PCT,
                 is_constant=is_constant,
                 is_high_cardinality=is_high_cardinality,
+                numeric_summary=numeric_summary,
             )
         )
 
@@ -116,7 +121,12 @@ def profile_dataset(df: pd.DataFrame, source_name: str) -> DatasetProfile:
         column.name
         for column in sorted(
             columns,
-            key=lambda column: (-column.issue_count, -column.missing_pct, column.name),
+            key=lambda column: (
+                -column.issue_count,
+                -column.missing_pct,
+                -_column_outlier_pct(column),
+                column.name,
+            ),
         )
         if column.issue_count > 0
     ]
@@ -136,6 +146,7 @@ def profile_dataset(df: pd.DataFrame, source_name: str) -> DatasetProfile:
         high_missing_columns=[column.name for column in columns if column.flagged_missing],
         constant_columns=[column.name for column in columns if column.is_constant],
         high_cardinality_columns=[column.name for column in columns if column.is_high_cardinality],
+        outlier_columns=[column.name for column in columns if column.has_outliers],
         suspicious_columns=suspicious_columns,
     )
 
@@ -196,3 +207,46 @@ def _normalize_dataframe(dataframe: pd.DataFrame) -> pd.DataFrame:
         )
 
     return normalized
+
+
+def _build_numeric_summary(series: pd.Series) -> NumericSummary:
+    values = pd.to_numeric(series.dropna(), errors="coerce").dropna()
+    min_value = float(values.min())
+    max_value = float(values.max())
+    mean = float(values.mean())
+    median = float(values.median())
+    std = float(values.std(ddof=0))
+    q1 = float(values.quantile(0.25))
+    q3 = float(values.quantile(0.75))
+    iqr = q3 - q1
+    lower_bound = q1 - 1.5 * iqr
+    upper_bound = q3 + 1.5 * iqr
+
+    if values.shape[0] >= MIN_VALUES_FOR_OUTLIER_DETECTION:
+        outlier_mask = (values < lower_bound) | (values > upper_bound)
+        outlier_count = int(outlier_mask.sum())
+        outlier_pct = float(outlier_count / values.shape[0] * 100)
+    else:
+        outlier_count = 0
+        outlier_pct = 0.0
+
+    return NumericSummary(
+        min_value=min_value,
+        max_value=max_value,
+        mean=mean,
+        median=median,
+        std=std,
+        q1=q1,
+        q3=q3,
+        iqr=iqr,
+        lower_bound=float(lower_bound),
+        upper_bound=float(upper_bound),
+        outlier_count=outlier_count,
+        outlier_pct=outlier_pct,
+    )
+
+
+def _column_outlier_pct(column: ColumnProfile) -> float:
+    if column.numeric_summary is None:
+        return 0.0
+    return column.numeric_summary.outlier_pct

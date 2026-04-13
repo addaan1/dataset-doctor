@@ -6,7 +6,8 @@ from textwrap import fill
 import typer
 
 from dataset_doctor.analyzer import DatasetLoadError, EmptyDatasetError, load_data, profile_dataset
-from dataset_doctor.models import DatasetProfile
+from dataset_doctor.report import build_report_payload, write_report_files
+from dataset_doctor.warnings import generate_warnings
 
 app = typer.Typer(
     add_completion=False,
@@ -19,10 +20,14 @@ def main(
     csv_path: Path = typer.Argument(..., help="Path to the CSV file to inspect."),
     separator: str = typer.Option(",", "--separator", "-s", help="CSV delimiter."),
     encoding: str = typer.Option("utf-8", "--encoding", "-e", help="File encoding."),
+    output_dir: Path = typer.Option(Path("outputs"), "--output-dir", help="Directory for generated report files."),
+    terminal_only: bool = typer.Option(False, "--terminal-only", help="Print terminal output only and skip file generation."),
 ) -> None:
     try:
         dataframe = load_data(csv_path, separator=separator, encoding=encoding)
         profile = profile_dataset(dataframe, csv_path.name)
+        warnings = generate_warnings(profile)
+        payload = build_report_payload(profile, warnings)
     except EmptyDatasetError as exc:
         typer.secho(str(exc), fg=typer.colors.RED, err=True)
         raise typer.Exit(code=1) from exc
@@ -30,15 +35,20 @@ def main(
         typer.secho(str(exc), fg=typer.colors.RED, err=True)
         raise typer.Exit(code=1) from exc
 
-    typer.echo(render_terminal_summary(profile))
+    lines = [render_terminal_summary(payload)]
+    if not terminal_only:
+        try:
+            written_files = write_report_files(payload, output_dir, csv_path.stem)
+        except OSError as exc:
+            typer.secho(f"Could not write report files: {exc}", fg=typer.colors.RED, err=True)
+            raise typer.Exit(code=1) from exc
+        lines.append(render_written_files(written_files))
+
+    typer.echo("\n".join(lines))
 
 
-def render_terminal_summary(profile: DatasetProfile) -> str:
-    sorted_columns = sorted(
-        profile.columns,
-        key=lambda item: (-item.issue_count, -item.missing_count, item.name),
-    )
-
+def render_terminal_summary(payload) -> str:
+    profile = payload.profile
     lines = [
         "Dataset Doctor",
         "==============",
@@ -50,9 +60,11 @@ def render_terminal_summary(profile: DatasetProfile) -> str:
         f"  Duplicate rows: {profile.duplicate_rows}",
         "",
         "Health Snapshot",
+        f"  Score: {payload.score.value}/100 ({payload.score.badge})",
         f"  High-missing columns (>30%): {len(profile.high_missing_columns)}",
         f"  Constant columns: {len(profile.constant_columns)}",
         f"  High-cardinality columns: {len(profile.high_cardinality_columns)}",
+        f"  Outlier columns: {len(profile.outlier_columns)}",
         f"  Suspicious columns: {profile.suspicious_column_count}",
         "",
         "Type Summary",
@@ -91,14 +103,52 @@ def render_terminal_summary(profile: DatasetProfile) -> str:
                 f"({profile.duplicate_pct:.1f}% of the dataset)"
             ),
             "",
-            "Suspicious Columns",
-            *_render_suspicious_columns(profile),
-            "",
-            "Column Profile",
+            "Warnings",
         ]
     )
 
-    for column in sorted_columns:
+    for warning in payload.warnings[:6]:
+        lines.append(f"  - [{warning.level.upper()}] {warning.message}")
+
+    lines.extend(["", "Numeric Findings"])
+    if payload.numeric_columns:
+        for column in payload.numeric_columns:
+            numeric = column.numeric_summary
+            assert numeric is not None
+            lines.append(
+                "  - "
+                f"{column.name}: min {_format_number(numeric.min_value)} | "
+                f"median {_format_number(numeric.median)} | "
+                f"mean {_format_number(numeric.mean)} | "
+                f"max {_format_number(numeric.max_value)} | "
+                f"outliers {numeric.outlier_count} ({numeric.outlier_pct:.1f}%)"
+            )
+    else:
+        lines.append("  - None")
+
+    lines.extend(["", "Suspicious Columns"])
+    for column in payload.problematic_columns:
+        reasons: list[str] = []
+        if column.flagged_missing:
+            reasons.append(f"{column.missing_pct:.1f}% missing")
+        if column.is_constant:
+            reasons.append("constant values only")
+        if column.is_high_cardinality:
+            reasons.append("high-cardinality strings")
+        if column.has_outliers and column.numeric_summary is not None:
+            reasons.append(
+                f"{column.numeric_summary.outlier_count} outliers ({column.numeric_summary.outlier_pct:.1f}%)"
+            )
+        lines.append(f"  - {column.name}: {'; '.join(reasons)}")
+
+    if not payload.problematic_columns:
+        lines.append("  - None")
+
+    lines.extend(["", "Column Profile"])
+    for column in sorted(
+        profile.columns,
+        key=lambda item: (-item.issue_count, -item.missing_count, item.name),
+    ):
         flag_text = f" | flags: {', '.join(column.flags)}" if column.flags else ""
         lines.append(
             "  - "
@@ -110,6 +160,17 @@ def render_terminal_summary(profile: DatasetProfile) -> str:
     return "\n".join(lines)
 
 
+def render_written_files(written_files: dict[str, Path]) -> str:
+    return "\n".join(
+        [
+            "",
+            "Written Files",
+            f"  Summary: {written_files['summary']}",
+            f"  HTML Report: {written_files['html']}",
+        ]
+    )
+
+
 def _format_column_names(column_names: list[str]) -> str:
     return fill(
         ", ".join(column_names),
@@ -119,27 +180,10 @@ def _format_column_names(column_names: list[str]) -> str:
     )
 
 
-def _render_suspicious_columns(profile: DatasetProfile) -> list[str]:
-    suspicious_lines: list[str] = []
-    columns_by_name = {column.name: column for column in profile.columns}
-
-    for column_name in profile.suspicious_columns:
-        column = columns_by_name[column_name]
-        reasons: list[str] = []
-        if column.flagged_missing:
-            reasons.append(f"{column.missing_pct:.1f}% missing")
-        if column.is_constant:
-            reasons.append("constant values only")
-        if column.is_high_cardinality:
-            reasons.append("high-cardinality strings")
-
-        if reasons:
-            suspicious_lines.append(f"  - {column.name}: {'; '.join(reasons)}")
-
-    if not suspicious_lines:
-        suspicious_lines.append("  - None")
-
-    return suspicious_lines
+def _format_number(value: float) -> str:
+    if value.is_integer():
+        return str(int(value))
+    return f"{value:.2f}"
 
 
 if __name__ == "__main__":

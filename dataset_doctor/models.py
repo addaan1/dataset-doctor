@@ -4,6 +4,26 @@ from dataclasses import dataclass
 
 
 @dataclass(slots=True, frozen=True)
+class NumericSummary:
+    min_value: float
+    max_value: float
+    mean: float
+    median: float
+    std: float
+    q1: float
+    q3: float
+    iqr: float
+    lower_bound: float
+    upper_bound: float
+    outlier_count: int
+    outlier_pct: float
+
+    @property
+    def has_outliers(self) -> bool:
+        return self.outlier_count > 0
+
+
+@dataclass(slots=True, frozen=True)
 class ColumnProfile:
     name: str
     raw_dtype: str
@@ -16,10 +36,20 @@ class ColumnProfile:
     flagged_missing: bool
     is_constant: bool
     is_high_cardinality: bool
+    numeric_summary: NumericSummary | None = None
+
+    @property
+    def has_outliers(self) -> bool:
+        return self.numeric_summary is not None and self.numeric_summary.has_outliers
 
     @property
     def issue_count(self) -> int:
-        return int(self.flagged_missing) + int(self.is_constant) + int(self.is_high_cardinality)
+        return (
+            int(self.flagged_missing)
+            + int(self.is_constant)
+            + int(self.is_high_cardinality)
+            + int(self.has_outliers)
+        )
 
     @property
     def flags(self) -> list[str]:
@@ -30,6 +60,8 @@ class ColumnProfile:
             flags.append("constant")
         if self.is_high_cardinality:
             flags.append("high-cardinality")
+        if self.has_outliers:
+            flags.append("outliers")
         return flags
 
 
@@ -47,8 +79,13 @@ class DatasetProfile:
     high_missing_columns: list[str]
     constant_columns: list[str]
     high_cardinality_columns: list[str]
+    outlier_columns: list[str]
     suspicious_columns: list[str]
 
     @property
     def suspicious_column_count(self) -> int:
         return len(self.suspicious_columns)
+
+    @property
+    def numeric_columns(self) -> list[ColumnProfile]:
+        return [column for column in self.columns if column.semantic_type == "numeric"]

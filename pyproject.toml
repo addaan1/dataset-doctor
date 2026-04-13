@@ -41,6 +41,9 @@ dataset-doctor = "dataset_doctor.cli:app"
 include = ["dataset_doctor*"]
 exclude = ["data*", "outputs*", "tests*"]
 
+[tool.setuptools.package-data]
+"dataset_doctor" = ["templates/*.j2"]
+
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
