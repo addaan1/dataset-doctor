@@ -1,0 +1,12 @@
+customer_id,name,email,signup_date,plan,is_active,country,ticket_count,notes,source_system
+C-001,Alice,alice@example.com,2026-01-03,Basic,yes,ID,3,,crm
+C-002,Bob,,2026-01-04,Pro,no,ID,7,Requested refund,crm
+C-003,Chandra,chandra@example.com,2026-01-05,Basic,yes,,1,,crm
+C-004,Dina,,2026-01-07,Enterprise,yes,SG,15,VIP account,crm
+C-005,Eko,eko@example.com,2026-01-08,Basic,no,ID,,Needs onboarding,crm
+C-006,Farah,,2026-01-09,Pro,yes,MY,2,,crm
+C-007,Gilang,gilang@example.com,2026-01-10,Basic,yes,,0,,crm
+C-008,Hana,,2026-01-11,Pro,no,ID,11,,crm
+C-002,Bob,,2026-01-04,Pro,no,ID,7,Requested refund,crm
+C-010,Intan,intan@example.com,2026-01-12,Enterprise,yes,ID,40,Escalated by finance,crm
+
