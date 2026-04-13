@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pandas as pd
 import pytest
 
-from dataset_doctor.analyzer import EmptyDatasetError, load_data, profile_dataset, summarize_columns
+from dataset_doctor.analyzer import DatasetLoadError, EmptyDatasetError, load_data, profile_dataset, summarize_columns
 
 
 def test_profile_dataset_ranks_missing_columns_and_counts_duplicates() -> None:
@@ -19,8 +21,10 @@ def test_profile_dataset_ranks_missing_columns_and_counts_duplicates() -> None:
     profile = profile_dataset(dataframe, "inline.csv")
 
     assert profile.duplicate_rows == 1
+    assert profile.duplicate_pct == 25.0
     assert profile.missing_ranked_columns == ["email", "status", "id"]
     assert profile.high_missing_columns == ["email"]
+    assert profile.suspicious_columns == ["email", "status"]
 
 
 def test_summarize_columns_flags_constant_and_high_cardinality_columns() -> None:
@@ -65,6 +69,11 @@ def test_load_data_raises_for_header_only_csv(tmp_path) -> None:
         load_data(csv_path)
 
 
+def test_load_data_rejects_directory(tmp_path) -> None:
+    with pytest.raises(DatasetLoadError, match="Expected a CSV file but received a directory"):
+        load_data(tmp_path)
+
+
 def test_all_null_columns_are_not_marked_constant() -> None:
     dataframe = pd.DataFrame(
         {
@@ -80,3 +89,33 @@ def test_all_null_columns_are_not_marked_constant() -> None:
     assert columns["notes"].is_constant is False
     assert columns["notes"].is_high_cardinality is False
 
+
+def test_load_data_normalizes_whitespace_only_strings(tmp_path) -> None:
+    csv_path = tmp_path / "whitespace.csv"
+    csv_path.write_text("name,comment\nAlice,   \nBob,Looks good\n", encoding="utf-8")
+
+    dataframe = load_data(csv_path)
+    columns = {column.name: column for column in summarize_columns(dataframe)}
+
+    assert columns["comment"].missing_count == 1
+    assert columns["comment"].missing_pct == 50.0
+
+
+def test_profile_dataset_tracks_semantic_type_counts_and_suspicious_order() -> None:
+    csv_path = Path("data/demo/quotes_to_scrape_doctor_demo.csv")
+    dataframe = load_data(csv_path)
+
+    profile = profile_dataset(dataframe, csv_path.name)
+
+    assert profile.semantic_type_counts == {
+        "categorical": 5,
+        "numeric": 1,
+        "boolean": 0,
+        "datetime": 1,
+    }
+    assert profile.suspicious_columns[:4] == [
+        "primary_tag",
+        "quote_id",
+        "quote_text",
+        "source_site",
+    ]

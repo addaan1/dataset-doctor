@@ -16,6 +16,9 @@ from dataset_doctor.models import ColumnProfile, DatasetProfile
 
 BOOLEAN_TRUE_VALUES = {"true", "t", "yes", "y", "1"}
 BOOLEAN_FALSE_VALUES = {"false", "f", "no", "n", "0"}
+SEMANTIC_TYPE_ORDER = ("categorical", "numeric", "boolean", "datetime")
+HIGH_MISSING_THRESHOLD_PCT = 30.0
+HIGH_CARDINALITY_THRESHOLD = 0.8
 DATE_HINT_PATTERN = re.compile(
     r"[-/:T]|jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec",
     re.IGNORECASE,
@@ -34,6 +37,8 @@ def load_data(path: str | Path, separator: str = ",", encoding: str = "utf-8") -
     csv_path = Path(path)
     if not csv_path.exists():
         raise DatasetLoadError(f"Dataset file was not found: {csv_path}")
+    if not csv_path.is_file():
+        raise DatasetLoadError(f"Expected a CSV file but received a directory: {csv_path}")
 
     try:
         dataframe = pd.read_csv(csv_path, sep=separator, encoding=encoding)
@@ -41,8 +46,14 @@ def load_data(path: str | Path, separator: str = ",", encoding: str = "utf-8") -
         raise EmptyDatasetError(
             "Dataset is empty. Provide a CSV with headers and at least one data row."
         ) from exc
+    except UnicodeDecodeError as exc:
+        raise DatasetLoadError(
+            f"Could not decode CSV with encoding '{encoding}'. Try a different --encoding value."
+        ) from exc
     except Exception as exc:
         raise DatasetLoadError(f"Could not read CSV file: {exc}") from exc
+
+    dataframe = _normalize_dataframe(dataframe)
 
     if dataframe.empty or dataframe.columns.empty:
         raise EmptyDatasetError(
@@ -70,7 +81,7 @@ def summarize_columns(df: pd.DataFrame) -> list[ColumnProfile]:
             non_null_count > 0
             and _is_string_like(series)
             and semantic_type == "categorical"
-            and unique_ratio > 0.8
+            and unique_ratio > HIGH_CARDINALITY_THRESHOLD
         )
 
         column_profiles.append(
@@ -83,7 +94,7 @@ def summarize_columns(df: pd.DataFrame) -> list[ColumnProfile]:
                 missing_pct=missing_pct,
                 unique_count=unique_count,
                 unique_ratio=unique_ratio,
-                flagged_missing=missing_pct > 30.0,
+                flagged_missing=missing_pct > HIGH_MISSING_THRESHOLD_PCT,
                 is_constant=is_constant,
                 is_high_cardinality=is_high_cardinality,
             )
@@ -95,18 +106,37 @@ def summarize_columns(df: pd.DataFrame) -> list[ColumnProfile]:
 def profile_dataset(df: pd.DataFrame, source_name: str) -> DatasetProfile:
     columns = summarize_columns(df)
     missing_ranked = sorted(columns, key=lambda column: (-column.missing_count, column.name))
+    semantic_type_counts = {semantic_type: 0 for semantic_type in SEMANTIC_TYPE_ORDER}
+    for column in columns:
+        semantic_type_counts[column.semantic_type] = (
+            semantic_type_counts.get(column.semantic_type, 0) + 1
+        )
+
+    suspicious_columns = [
+        column.name
+        for column in sorted(
+            columns,
+            key=lambda column: (-column.issue_count, -column.missing_pct, column.name),
+        )
+        if column.issue_count > 0
+    ]
+    duplicate_rows = int(df.duplicated().sum())
+    row_count = int(len(df))
 
     return DatasetProfile(
         source_name=source_name,
-        row_count=int(len(df)),
+        row_count=row_count,
         column_count=int(len(df.columns)),
         column_names=[str(column_name) for column_name in df.columns],
-        duplicate_rows=int(df.duplicated().sum()),
+        duplicate_rows=duplicate_rows,
+        duplicate_pct=(duplicate_rows / row_count * 100) if row_count else 0.0,
         columns=columns,
+        semantic_type_counts=semantic_type_counts,
         missing_ranked_columns=[column.name for column in missing_ranked],
         high_missing_columns=[column.name for column in columns if column.flagged_missing],
         constant_columns=[column.name for column in columns if column.is_constant],
         high_cardinality_columns=[column.name for column in columns if column.is_high_cardinality],
+        suspicious_columns=suspicious_columns,
     )
 
 
@@ -152,3 +182,17 @@ def _parse_datetimes(values: pd.Series) -> pd.Series:
     except TypeError:
         return pd.to_datetime(values, errors="coerce")
 
+
+def _normalize_dataframe(dataframe: pd.DataFrame) -> pd.DataFrame:
+    normalized = dataframe.copy()
+    normalized.columns = [str(column_name).strip() for column_name in normalized.columns]
+
+    string_columns = normalized.select_dtypes(include=["object", "string"]).columns
+    if len(string_columns) > 0:
+        normalized.loc[:, string_columns] = normalized.loc[:, string_columns].replace(
+            r"^\s*$",
+            pd.NA,
+            regex=True,
+        )
+
+    return normalized

@@ -39,7 +39,7 @@ dataset-doctor = "dataset_doctor.cli:app"
 
 [tool.setuptools.packages.find]
 include = ["dataset_doctor*"]
-exclude = ["examples*", "outputs*", "tests*"]
+exclude = ["data*", "outputs*", "tests*"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

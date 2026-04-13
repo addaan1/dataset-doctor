@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from textwrap import fill
 
 import typer
 
@@ -33,6 +34,11 @@ def main(
 
 
 def render_terminal_summary(profile: DatasetProfile) -> str:
+    sorted_columns = sorted(
+        profile.columns,
+        key=lambda item: (-item.issue_count, -item.missing_count, item.name),
+    )
+
     lines = [
         "Dataset Doctor",
         "==============",
@@ -43,17 +49,37 @@ def render_terminal_summary(profile: DatasetProfile) -> str:
         f"  Columns: {profile.column_count}",
         f"  Duplicate rows: {profile.duplicate_rows}",
         "",
-        "Columns",
-        f"  {', '.join(profile.column_names)}",
+        "Health Snapshot",
+        f"  High-missing columns (>30%): {len(profile.high_missing_columns)}",
+        f"  Constant columns: {len(profile.constant_columns)}",
+        f"  High-cardinality columns: {len(profile.high_cardinality_columns)}",
+        f"  Suspicious columns: {profile.suspicious_column_count}",
         "",
-        "Missingness (sorted)",
+        "Type Summary",
     ]
 
-    for column in sorted(profile.columns, key=lambda item: (-item.missing_count, item.name)):
-        suffix = " HIGH" if column.flagged_missing else ""
-        lines.append(
-            f"  - {column.name}: {column.missing_count} missing ({column.missing_pct:.1f}%){suffix}"
-        )
+    for semantic_type in ("categorical", "numeric", "boolean", "datetime"):
+        lines.append(f"  - {semantic_type}: {profile.semantic_type_counts.get(semantic_type, 0)}")
+
+    lines.extend(
+        [
+            "",
+            "Columns",
+            _format_column_names(profile.column_names),
+            "",
+            "Missingness (sorted)",
+        ]
+    )
+
+    missing_columns = [column for column in profile.columns if column.missing_count > 0]
+    if not missing_columns:
+        lines.append("  - None")
+    else:
+        for column in sorted(missing_columns, key=lambda item: (-item.missing_count, item.name)):
+            suffix = " HIGH" if column.flagged_missing else ""
+            lines.append(
+                f"  - {column.name}: {column.missing_count} missing ({column.missing_pct:.1f}%){suffix}"
+            )
 
     lines.extend(
         [
@@ -62,22 +88,18 @@ def render_terminal_summary(profile: DatasetProfile) -> str:
             (
                 "  - "
                 f"{profile.duplicate_rows} duplicate rows detected "
-                f"({(profile.duplicate_rows / profile.row_count * 100):.1f}% of the dataset)"
+                f"({profile.duplicate_pct:.1f}% of the dataset)"
             ),
+            "",
+            "Suspicious Columns",
+            *_render_suspicious_columns(profile),
             "",
             "Column Profile",
         ]
     )
 
-    for column in profile.columns:
-        flags: list[str] = []
-        if column.flagged_missing:
-            flags.append("missing>30%")
-        if column.is_constant:
-            flags.append("constant")
-        if column.is_high_cardinality:
-            flags.append("high-cardinality")
-        flag_text = f" | flags: {', '.join(flags)}" if flags else ""
+    for column in sorted_columns:
+        flag_text = f" | flags: {', '.join(column.flags)}" if column.flags else ""
         lines.append(
             "  - "
             f"{column.name}: {column.semantic_type} ({column.raw_dtype}) | "
@@ -85,16 +107,24 @@ def render_terminal_summary(profile: DatasetProfile) -> str:
             f"missing {column.missing_pct:.1f}%{flag_text}"
         )
 
-    suspicious_lines = _render_suspicious_columns(profile)
-    lines.extend(["", "Suspicious Columns", *suspicious_lines])
-
     return "\n".join(lines)
+
+
+def _format_column_names(column_names: list[str]) -> str:
+    return fill(
+        ", ".join(column_names),
+        width=88,
+        initial_indent="  ",
+        subsequent_indent="  ",
+    )
 
 
 def _render_suspicious_columns(profile: DatasetProfile) -> list[str]:
     suspicious_lines: list[str] = []
+    columns_by_name = {column.name: column for column in profile.columns}
 
-    for column in profile.columns:
+    for column_name in profile.suspicious_columns:
+        column = columns_by_name[column_name]
         reasons: list[str] = []
         if column.flagged_missing:
             reasons.append(f"{column.missing_pct:.1f}% missing")
@@ -114,4 +144,3 @@ def _render_suspicious_columns(profile: DatasetProfile) -> list[str]:
 
 if __name__ == "__main__":
     app()
-
