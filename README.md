@@ -39,32 +39,38 @@ The project supports both terminal inspection and generated artifacts for sharin
 - Health score with badge: `Healthy`, `Needs Review`, `Critical`
 - Automatic Markdown and HTML report generation
 
-## Quickstart
+## 🛠️ Quickstart & Tutorial
+
+### 1. Installation
+
+First, clone the repository and set up a virtual environment:
 
 ```bash
+git clone https://github.com/addaan1/dataset-doctor.git
+cd dataset-doctor
 python -m venv .venv
 ```
 
-Windows:
+Activate the environment:
+- **Windows**: `.venv\Scripts\activate`
+- **macOS/Linux**: `source .venv/bin/activate`
 
-```bash
-.venv\Scripts\activate
-```
-
-macOS / Linux:
-
-```bash
-source .venv/bin/activate
-```
-
-Install and run:
-
+Install the package in editable mode:
 ```bash
 pip install -e .[dev]
+```
+
+### 2. Try the Demo
+
+Dataset Doctor comes with a built-in demo dataset specifically crafted with missing values, duplicate rows, constant columns, and outliers. Run the tool against it:
+
+```bash
 dataset-doctor data/demo/quotes_to_scrape_doctor_demo.csv
 ```
 
-That command prints a terminal summary and writes:
+### 3. View the Results
+
+The command will immediately output a data health summary in your terminal. It will also generate beautifully formatted Markdown and HTML reports in your `outputs/` folder:
 
 ```text
 outputs/
@@ -73,23 +79,29 @@ outputs/
     report.html
 ```
 
-If you only want terminal output:
+Open `outputs/quotes_to_scrape_doctor_demo/report.html` in any web browser to view the interactive dashboard!
+
+### 4. Running on Your Own Data
+
+It's just as easy to analyze your own datasets. Simply pass the path to your CSV file:
 
 ```bash
-dataset-doctor data/demo/quotes_to_scrape_doctor_demo.csv --terminal-only
+dataset-doctor path/to/your_data.csv
 ```
 
-If you prefer module execution during development:
-
-```bash
-python -m dataset_doctor.cli data/demo/quotes_to_scrape_doctor_demo.csv --output-dir outputs
-```
-
-## Usage
-
-```bash
-dataset-doctor PATH_TO_FILE.csv --separator "," --encoding "utf-8" --output-dir outputs
-```
+**Advanced Options:**
+- Specify a custom separator or encoding:
+  ```bash
+  dataset-doctor path/to/your_data.csv --separator ";" --encoding "latin1"
+  ```
+- Print to terminal only (skip generating Markdown and HTML files):
+  ```bash
+  dataset-doctor path/to/your_data.csv --terminal-only
+  ```
+- Change the output directory:
+  ```bash
+  dataset-doctor path/to/your_data.csv --output-dir reports/
+  ```
 
 ## Example terminal output
 
