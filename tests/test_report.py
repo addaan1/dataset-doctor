@@ -42,7 +42,7 @@ def test_html_report_contains_dashboard_sections() -> None:
 
     html = render_html_report(payload)
 
-    assert "Dataset Doctor Report" in html
+    assert "Dataset Doctor" in html
     assert "Overall Score" in html
     assert "Problematic Columns" in html
     assert "Numeric Findings" in html
