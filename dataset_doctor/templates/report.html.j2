@@ -4,119 +4,153 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Dataset Doctor Report - {{ payload.profile.source_name }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:wght@500;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #f6f1e8;
-      --surface: #fffaf2;
-      --surface-strong: #ffffff;
-      --ink: #1f2933;
-      --muted: #5b6773;
-      --line: #dfd3c3;
-      --accent: #136f63;
-      --accent-soft: #d8efe8;
-      --warning: #b7791f;
-      --warning-soft: #fff3d6;
-      --critical: #b2402f;
-      --critical-soft: #fde4df;
-      --healthy: #136f63;
-      --healthy-soft: #ddf4ee;
-      --shadow: 0 18px 45px rgba(63, 39, 20, 0.12);
-      --radius-lg: 24px;
-      --radius-md: 18px;
-      --radius-sm: 12px;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --surface-subtle: #f1f5f9;
+      --ink: #0f172a;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      /* Brand / Accent */
+      --accent: #0f766e;
+      --accent-soft: #ccfbf1;
+      --accent-gradient-start: #115e59;
+      --accent-gradient-end: #0f766e;
+      /* Semantic colors */
+      --warning: #b45309;
+      --warning-soft: #fef3c7;
+      --critical: #b91c1c;
+      --critical-soft: #fee2e2;
+      --healthy: #15803d;
+      --healthy-soft: #dcfce7;
+      /* Shadows & Radii */
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+      --radius-lg: 16px;
+      --radius-md: 12px;
+      --radius-sm: 8px;
     }
 
     * { box-sizing: border-box; }
 
     body {
       margin: 0;
-      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      font-family: 'Inter', sans-serif;
       color: var(--ink);
-      background:
-        radial-gradient(circle at top left, rgba(19, 111, 99, 0.12), transparent 30%),
-        linear-gradient(180deg, #fff7ed 0%, var(--bg) 100%);
+      background: var(--bg);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
 
     h1, h2, h3 {
-      font-family: Georgia, "Times New Roman", serif;
+      font-family: 'Lora', serif;
       margin: 0;
-      letter-spacing: -0.02em;
+      letter-spacing: -0.01em;
+      color: var(--ink);
     }
 
     p { margin: 0; line-height: 1.6; }
 
     .page {
-      max-width: 1180px;
+      max-width: 1200px;
       margin: 0 auto;
-      padding: 32px 20px 64px;
+      padding: 40px 24px 80px;
     }
 
+    /* Hero Section */
     .hero {
       display: grid;
-      gap: 18px;
-      padding: 28px;
+      gap: 24px;
+      padding: 40px;
       border-radius: var(--radius-lg);
-      background:
-        linear-gradient(135deg, rgba(19, 111, 99, 0.95), rgba(19, 111, 99, 0.7)),
-        #136f63;
-      color: #f7fffd;
-      box-shadow: var(--shadow);
+      background: linear-gradient(135deg, var(--accent-gradient-start), var(--accent-gradient-end));
+      color: #ffffff;
+      box-shadow: var(--shadow-lg);
       overflow: hidden;
       position: relative;
     }
 
-    .hero::after {
+    .hero::before {
       content: "";
       position: absolute;
-      inset: auto -80px -80px auto;
-      width: 240px;
-      height: 240px;
+      top: -100px;
+      right: -50px;
+      width: 400px;
+      height: 400px;
       border-radius: 50%;
-      background: rgba(255, 255, 255, 0.08);
+      background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+      pointer-events: none;
     }
 
     .eyebrow {
-      font-size: 0.82rem;
+      font-size: 0.875rem;
+      font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.14em;
-      opacity: 0.8;
+      letter-spacing: 0.1em;
+      color: rgba(255, 255, 255, 0.8);
     }
 
     .hero-grid {
       display: grid;
-      gap: 18px;
-      grid-template-columns: 1.8fr 1fr;
-      align-items: start;
+      gap: 32px;
+      grid-template-columns: 2fr 1fr;
+      align-items: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-copy h1 {
+      color: #ffffff;
+      font-size: 2.25rem;
+      margin-bottom: 12px;
     }
 
     .hero-copy p {
-      color: rgba(247, 255, 253, 0.86);
-      max-width: 60ch;
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 1.125rem;
+      max-width: 55ch;
+      margin-bottom: 16px;
     }
 
+    /* Score Card inside Hero */
     .score-card {
-      padding: 20px;
+      padding: 24px;
       border-radius: var(--radius-md);
-      background: rgba(255, 255, 255, 0.12);
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      backdrop-filter: blur(6px);
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      text-align: center;
+    }
+
+    .score-card .eyebrow {
+      color: rgba(255, 255, 255, 0.9);
+      margin-bottom: 8px;
     }
 
     .score-value {
-      font-size: 3rem;
+      font-size: 4rem;
       font-weight: 700;
       line-height: 1;
-      margin: 10px 0;
+      margin-bottom: 16px;
+      font-family: 'Inter', sans-serif;
+      letter-spacing: -0.03em;
     }
 
+    /* Badges */
     .badge {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      padding: 8px 14px;
-      border-radius: 999px;
-      font-size: 0.86rem;
-      font-weight: 700;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 0.875rem;
+      font-weight: 600;
       letter-spacing: 0.02em;
     }
 
@@ -124,183 +158,216 @@
     .badge.needs-review { background: var(--warning-soft); color: var(--warning); }
     .badge.critical { background: var(--critical-soft); color: var(--critical); }
 
+    /* Standard Sections */
     .section {
-      margin-top: 24px;
-      padding: 24px;
-      background: var(--surface);
-      border: 1px solid rgba(146, 116, 89, 0.12);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow);
+      margin-top: 40px;
     }
 
     .section-head {
-      display: flex;
-      align-items: end;
-      justify-content: space-between;
-      gap: 16px;
-      margin-bottom: 18px;
+      margin-bottom: 24px;
+    }
+
+    .section-head h2 {
+      font-size: 1.75rem;
+      margin-bottom: 8px;
     }
 
     .section-head p {
       color: var(--muted);
-      max-width: 58ch;
+      font-size: 1.05rem;
     }
 
+    /* Grid layout for stats/cards */
     .cards {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 14px;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
     }
 
     .card {
-      padding: 18px;
+      padding: 24px;
       border-radius: var(--radius-md);
-      background: var(--surface-strong);
-      border: 1px solid rgba(146, 116, 89, 0.12);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
     }
 
     .card-label {
-      font-size: 0.82rem;
+      font-size: 0.875rem;
+      font-weight: 600;
       color: var(--muted);
       text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin-bottom: 10px;
+      letter-spacing: 0.05em;
+      margin-bottom: 12px;
     }
 
     .card-value {
-      font-size: 2rem;
+      font-size: 2.25rem;
       font-weight: 700;
-      line-height: 1.05;
+      line-height: 1.1;
+      color: var(--ink);
     }
 
     .card-subtext {
       margin-top: 8px;
       color: var(--muted);
-      font-size: 0.94rem;
+      font-size: 0.95rem;
     }
 
+    /* Warning List styling */
     .warning-list {
       display: grid;
-      gap: 12px;
+      gap: 16px;
     }
 
     .warning-item {
-      padding: 16px 18px;
+      padding: 20px 24px;
       border-radius: var(--radius-md);
-      border: 1px solid transparent;
-      background: var(--surface-strong);
+      border-left: 4px solid transparent;
+      background: var(--surface);
+      box-shadow: var(--shadow-sm);
     }
 
     .warning-item.critical {
-      background: var(--critical-soft);
-      border-color: rgba(178, 64, 47, 0.18);
+      border-left-color: var(--critical);
+      background: linear-gradient(90deg, var(--critical-soft) 0%, var(--surface) 20%);
     }
 
     .warning-item.warning {
-      background: var(--warning-soft);
-      border-color: rgba(183, 121, 31, 0.18);
+      border-left-color: var(--warning);
+      background: linear-gradient(90deg, var(--warning-soft) 0%, var(--surface) 20%);
     }
 
     .warning-item.info {
-      background: var(--accent-soft);
-      border-color: rgba(19, 111, 99, 0.18);
+      border-left-color: var(--accent);
+      background: linear-gradient(90deg, var(--accent-soft) 0%, var(--surface) 20%);
     }
 
     .warning-meta {
       display: flex;
       align-items: center;
       gap: 12px;
-      margin-bottom: 8px;
-      font-size: 0.9rem;
-      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .warning-meta .warning-title {
+      font-size: 1.1rem;
+      font-weight: 600;
     }
 
     .pill {
       display: inline-block;
-      padding: 5px 10px;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.65);
-      font-size: 0.76rem;
-      letter-spacing: 0.06em;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
       text-transform: uppercase;
     }
 
+    .critical .pill { background: var(--critical); color: #fff; }
+    .warning .pill { background: var(--warning); color: #fff; }
+    .info .pill { background: var(--accent); color: #fff; }
+
+    /* Layout specific */
     .two-col {
       display: grid;
-      grid-template-columns: 1.1fr 0.9fr;
-      gap: 18px;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    /* Tables */
+    .table-container {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      overflow-x: auto;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
       font-size: 0.95rem;
-      background: var(--surface-strong);
-      border-radius: var(--radius-md);
-      overflow: hidden;
     }
 
     th, td {
       text-align: left;
-      padding: 12px 14px;
+      padding: 14px 20px;
       border-bottom: 1px solid var(--line);
-      vertical-align: top;
     }
 
     thead th {
-      font-size: 0.82rem;
+      font-size: 0.85rem;
+      font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.05em;
       color: var(--muted);
-      background: rgba(19, 111, 99, 0.06);
+      background: var(--surface-subtle);
+      border-bottom: 2px solid var(--line);
     }
 
     tbody tr:last-child td {
       border-bottom: none;
     }
 
+    tbody tr:hover {
+      background: var(--surface-subtle);
+    }
+
+    /* Badges in tables */
     .flag-list {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
+      gap: 6px;
     }
 
     .flag {
       display: inline-flex;
       align-items: center;
-      padding: 5px 10px;
+      padding: 4px 10px;
       border-radius: 999px;
-      background: rgba(19, 111, 99, 0.08);
-      color: var(--accent);
+      background: var(--surface-subtle);
+      color: var(--muted);
       font-size: 0.8rem;
-      font-weight: 700;
+      font-weight: 600;
+      border: 1px solid var(--line);
     }
 
+    /* Warning/Flag specific colors in table */
+    .flag.missing { color: var(--critical); border-color: var(--critical-soft); background: var(--critical-soft); }
+    .flag.outliers { color: var(--warning); border-color: var(--warning-soft); background: var(--warning-soft); }
+
     .actions {
-      display: grid;
-      gap: 10px;
-      padding-left: 18px;
       margin: 0;
+      padding-left: 24px;
+    }
+
+    .actions li {
+      margin-bottom: 12px;
+      color: var(--ink);
     }
 
     .muted {
       color: var(--muted);
     }
 
-    @media (max-width: 920px) {
+    @media (max-width: 960px) {
       .hero-grid,
-      .cards,
       .two-col {
         grid-template-columns: 1fr;
       }
-
       .page {
-        padding: 18px 14px 42px;
+        padding: 24px 16px 60px;
       }
-
-      .section,
       .hero {
-        padding: 18px;
+        padding: 32px 24px;
       }
     }
   </style>
@@ -308,25 +375,25 @@
 <body>
   <main class="page">
     <section class="hero">
-      <div class="eyebrow">Dataset Doctor Report</div>
       <div class="hero-grid">
         <div class="hero-copy">
+          <div class="eyebrow">Dataset Doctor Report</div>
           <h1>{{ payload.profile.source_name }}</h1>
           <p>
             A first-pass data health report covering structure, missingness, duplicates,
             semantic types, numeric summaries, outliers, and rule-based warnings.
           </p>
-          <p class="muted" style="color: rgba(247, 255, 253, 0.82);">
+          <div style="color: rgba(255, 255, 255, 0.7); font-size: 0.95rem;">
             Generated at {{ payload.generated_at }}
-          </p>
+          </div>
         </div>
         <aside class="score-card">
           <div class="eyebrow">Health Score</div>
           <div class="score-value">{{ payload.score.value }}</div>
           <span class="badge {{ payload.score.css_modifier }}">{{ payload.score.badge }}</span>
-          <p style="margin-top: 12px; color: rgba(247, 255, 253, 0.82);">
-            {{ payload.profile.suspicious_column_count }} suspicious columns and
-            {{ payload.warnings|length }} generated warnings.
+          <p style="margin-top: 16px; color: rgba(255, 255, 255, 0.8); font-size: 0.95rem;">
+            {{ payload.profile.suspicious_column_count }} suspicious columns<br/>
+            {{ payload.warnings|length }} generated warnings
           </p>
         </aside>
       </div>
@@ -334,10 +401,8 @@
 
     <section class="section">
       <div class="section-head">
-        <div>
-          <h2>Overview</h2>
-          <p>Quick context for the dataset and the most visible structural risks.</p>
-        </div>
+        <h2>Overview</h2>
+        <p>Quick context for the dataset and the most visible structural risks.</p>
       </div>
       <div class="cards">
         <article class="card">
@@ -365,21 +430,19 @@
 
     <section class="section">
       <div class="section-head">
-        <div>
-          <h2>Warnings</h2>
-          <p>Rule-based findings ordered by severity to support quick cleanup decisions.</p>
-        </div>
+        <h2>Warnings</h2>
+        <p>Rule-based findings ordered by severity to support quick cleanup decisions.</p>
       </div>
       <div class="warning-list">
         {% for warning in payload.warnings %}
           <article class="warning-item {{ warning.level }}">
             <div class="warning-meta">
               <span class="pill">{{ warning.level }}</span>
-              <span>{{ warning.title }}</span>
+              <span class="warning-title">{{ warning.title }}</span>
             </div>
             <p>{{ warning.message }}</p>
             <p class="muted" style="margin-top: 8px;">
-              Recommended action: {{ warning.recommended_action }}
+              <strong>Recommended action:</strong> {{ warning.recommended_action }}
             </p>
           </article>
         {% endfor %}
@@ -388,14 +451,11 @@
 
     <section class="section">
       <div class="section-head">
-        <div>
-          <h2>Structure Summary</h2>
-          <p>A compact view of type balance and columns that deserve extra attention.</p>
-        </div>
+        <h2>Structure Summary</h2>
+        <p>A compact view of type balance and columns that deserve extra attention.</p>
       </div>
       <div class="two-col">
-        <div class="card">
-          <div class="card-label">Type Summary</div>
+        <div class="table-container">
           <table>
             <thead>
               <tr>
@@ -406,19 +466,22 @@
             <tbody>
               {% for semantic_type in ["categorical", "numeric", "boolean", "datetime"] %}
                 <tr>
-                  <td>{{ semantic_type }}</td>
+                  <td style="font-weight: 500;">{{ semantic_type | title }}</td>
                   <td>{{ payload.profile.semantic_type_counts.get(semantic_type, 0) }}</td>
                 </tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
-        <div class="card">
-          <div class="card-label">Suggested Next Steps</div>
+        <div class="card" style="margin: 0;">
+          <div class="card-label" style="margin-bottom: 20px;">Suggested Next Steps</div>
           <ol class="actions">
             {% for action in payload.suggested_actions %}
               <li>{{ action }}</li>
             {% endfor %}
+            {% if not payload.suggested_actions %}
+              <li class="muted">No immediate actions required.</li>
+            {% endif %}
           </ol>
         </div>
       </div>
@@ -426,123 +489,123 @@
 
     <section class="section">
       <div class="section-head">
-        <div>
-          <h2>Problematic Columns</h2>
-          <p>Columns with high missingness, constant values, high-cardinality patterns, or outliers.</p>
-        </div>
+        <h2>Problematic Columns</h2>
+        <p>Columns with high missingness, constant values, high-cardinality patterns, or outliers.</p>
       </div>
-      <table>
-        <thead>
-          <tr>
-            <th>Column</th>
-            <th>Type</th>
-            <th>Missing</th>
-            <th>Unique Ratio</th>
-            <th>Flags</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% if payload.problematic_columns %}
-            {% for column in payload.problematic_columns %}
-              <tr>
-                <td>{{ column.name }}</td>
-                <td>{{ column.semantic_type }}</td>
-                <td>{{ "%.1f"|format(column.missing_pct) }}%</td>
-                <td>{{ "%.1f"|format(column.unique_ratio * 100) }}%</td>
-                <td>
-                  <div class="flag-list">
-                    {% for flag in column.flags %}
-                      <span class="flag">{{ flag }}</span>
-                    {% endfor %}
-                  </div>
-                </td>
-              </tr>
-            {% endfor %}
-          {% else %}
+      <div class="table-container">
+        <table>
+          <thead>
             <tr>
-              <td colspan="5">No problematic columns were detected.</td>
+              <th>Column</th>
+              <th>Type</th>
+              <th>Missing</th>
+              <th>Unique Ratio</th>
+              <th>Flags</th>
             </tr>
-          {% endif %}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {% if payload.problematic_columns %}
+              {% for column in payload.problematic_columns %}
+                <tr>
+                  <td style="font-family: monospace; font-size: 1rem;">{{ column.name }}</td>
+                  <td>{{ column.semantic_type }}</td>
+                  <td>{{ "%.1f"|format(column.missing_pct) }}%</td>
+                  <td>{{ "%.1f"|format(column.unique_ratio * 100) }}%</td>
+                  <td>
+                    <div class="flag-list">
+                      {% for flag in column.flags %}
+                        <span class="flag {% if 'missing' in flag %}missing{% elif 'outliers' in flag %}outliers{% endif %}">{{ flag }}</span>
+                      {% endfor %}
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="5" class="muted" style="text-align: center; padding: 24px;">No problematic columns were detected.</td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
     </section>
 
     <section class="section">
       <div class="section-head">
-        <div>
-          <h2>Numeric Findings</h2>
-          <p>Distribution signals for numeric columns using lightweight descriptive statistics and IQR outlier checks.</p>
-        </div>
+        <h2>Numeric Findings</h2>
+        <p>Distribution signals for numeric columns using lightweight descriptive statistics and IQR outlier checks.</p>
       </div>
-      <div class="two-col">
-        <table>
-          <thead>
-            <tr>
-              <th>Column</th>
-              <th>Min</th>
-              <th>Median</th>
-              <th>Mean</th>
-              <th>Max</th>
-              <th>Std</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% if payload.numeric_columns %}
-              {% for column in payload.numeric_columns %}
-                <tr>
-                  <td>{{ column.name }}</td>
-                  <td>{{ column.numeric_summary.min_value|number }}</td>
-                  <td>{{ column.numeric_summary.median|number }}</td>
-                  <td>{{ column.numeric_summary.mean|number }}</td>
-                  <td>{{ column.numeric_summary.max_value|number }}</td>
-                  <td>{{ column.numeric_summary.std|number }}</td>
-                </tr>
-              {% endfor %}
-            {% else %}
+      <div class="warning-list">
+        <div class="table-container">
+          <table>
+            <thead>
               <tr>
-                <td colspan="6">No numeric columns available.</td>
+                <th>Column</th>
+                <th>Min</th>
+                <th>Median</th>
+                <th>Mean</th>
+                <th>Max</th>
+                <th>Std</th>
               </tr>
-            {% endif %}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {% if payload.numeric_columns %}
+                {% for column in payload.numeric_columns %}
+                  <tr>
+                    <td style="font-family: monospace; font-size: 1rem;">{{ column.name }}</td>
+                    <td>{{ column.numeric_summary.min_value|number }}</td>
+                    <td>{{ column.numeric_summary.median|number }}</td>
+                    <td>{{ column.numeric_summary.mean|number }}</td>
+                    <td>{{ column.numeric_summary.max_value|number }}</td>
+                    <td>{{ column.numeric_summary.std|number }}</td>
+                  </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="6" class="muted" style="text-align: center; padding: 24px;">No numeric columns available.</td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
 
-        <table>
-          <thead>
-            <tr>
-              <th>Column</th>
-              <th>Q1</th>
-              <th>Q3</th>
-              <th>IQR</th>
-              <th>Bounds</th>
-              <th>Outliers</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% if payload.numeric_columns %}
-              {% for column in payload.numeric_columns %}
-                <tr>
-                  <td>{{ column.name }}</td>
-                  <td>{{ column.numeric_summary.q1|number }}</td>
-                  <td>{{ column.numeric_summary.q3|number }}</td>
-                  <td>{{ column.numeric_summary.iqr|number }}</td>
-                  <td>
-                    {{ column.numeric_summary.lower_bound|number }}
-                    to
-                    {{ column.numeric_summary.upper_bound|number }}
-                  </td>
-                  <td>
-                    {{ column.numeric_summary.outlier_count }}
-                    ({{ "%.1f"|format(column.numeric_summary.outlier_pct) }}%)
-                  </td>
-                </tr>
-              {% endfor %}
-            {% else %}
+        <div class="table-container">
+          <table>
+            <thead>
               <tr>
-                <td colspan="6">No numeric columns available.</td>
+                <th>Column</th>
+                <th>Q1</th>
+                <th>Q3</th>
+                <th>IQR</th>
+                <th>Bounds</th>
+                <th>Outliers</th>
               </tr>
-            {% endif %}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {% if payload.numeric_columns %}
+                {% for column in payload.numeric_columns %}
+                  <tr>
+                    <td style="font-family: monospace; font-size: 1rem;">{{ column.name }}</td>
+                    <td>{{ column.numeric_summary.q1|number }}</td>
+                    <td>{{ column.numeric_summary.q3|number }}</td>
+                    <td>{{ column.numeric_summary.iqr|number }}</td>
+                    <td class="muted">
+                      {{ column.numeric_summary.lower_bound|number }} to {{ column.numeric_summary.upper_bound|number }}
+                    </td>
+                    <td style="font-weight: 500; {% if column.numeric_summary.outlier_count > 0 %}color: var(--warning);{% endif %}">
+                      {{ column.numeric_summary.outlier_count }}
+                      <span class="muted" style="font-weight: normal;">({{ "%.1f"|format(column.numeric_summary.outlier_pct) }}%)</span>
+                    </td>
+                  </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="6" class="muted" style="text-align: center; padding: 24px;">No numeric columns available.</td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
       </div>
     </section>
   </main>
