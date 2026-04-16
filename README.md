@@ -7,6 +7,8 @@
 [![Pytest](https://img.shields.io/badge/tests-pytest-0A9EDC?logo=pytest&logoColor=white)](https://pytest.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-111827)](LICENSE)
 
+![Dataset Doctor Banner](data/assets/readme_banner.png)
+
 Turn messy CSV files into an instant data health report.
 
 Dataset Doctor is an open-source Python CLI for fast first-pass dataset checks. Point it at a CSV file and it will profile structure, missingness, duplicate rows, semantic column types, numeric distributions, outliers, uniqueness patterns, constant columns, and high-cardinality fields, then generate shareable Markdown and HTML reports.
@@ -15,17 +17,7 @@ Dataset Doctor is an open-source Python CLI for fast first-pass dataset checks. 
 
 Many CSV files look usable until hidden issues derail the workflow: sparse columns, accidental duplicates, ID-like fields masquerading as categories, suspicious numeric spikes, or columns that carry no information at all. Dataset Doctor is meant to surface those problems in seconds with a small command-line tool that still produces demo-friendly output.
 
-## Current milestone: Days 6-10
-
-The repository now covers the middle milestone of the roadmap:
-
-- Day 6: numeric summaries and IQR-based outlier detection
-- Day 7: rule-based warning engine with severity levels
-- Day 8: Markdown report generation
-- Day 9: HTML report generation
-- Day 10: health score, badge, and a more polished dashboard-like report
-
-The project now supports both terminal inspection and generated artifacts for sharing:
+The project supports both terminal inspection and generated artifacts for sharing:
 
 - terminal summary
 - `summary.md`
@@ -127,14 +119,14 @@ Warnings
 
 ## HTML preview
 
-This is the visual direction of the generated `report.html` produced by the current template.
+This is the visual direction of the generated `report.html`.
 
-![Dataset Doctor HTML report preview](assets/report-preview.svg)
+![Dataset Doctor HTML report preview](data/assets/report-preview.png)
 
 ## Generated reports
 
 - `summary.md` gives a concise text report with overview, score, top warnings, problematic columns, numeric findings, and suggested actions.
-- `report.html` renders the same information in a dashboard-like layout designed to be easier to scan and suitable for screenshots.
+- `report.html` renders the same information in a beautiful, modern dashboard-like layout designed to be easier to scan and suitable for presentations.
 
 The generated HTML uses a self-contained template, so the report can be opened directly in a browser without bundling extra assets.
 
@@ -170,18 +162,13 @@ outputs/
 tests/
 ```
 
-## Roadmap
-
-### Days 11-14
-
-- Expand edge-case coverage and test depth
-- Strengthen the README with screenshots and demo assets
-- Add open-source contribution polish
-- Prepare the first public release
-
 ## Contributing
 
-Contributions are welcome. The current focus is on making the report pipeline stable, easy to demo, and easy to extend before the final open-source polish phase.
+Contributions are welcome! Please check the [CONTRIBUTING.md](CONTRIBUTING.md) guide and the open issues to get started. We use standard GitHub PR workflows.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for a history of changes and releases.
 
 ## License
 
