@@ -98,6 +98,10 @@ dataset-doctor path/to/your_data.csv
   ```bash
   dataset-doctor path/to/your_data.csv --terminal-only
   ```
+- Provide a Contextual Rule Configuration:
+  ```bash
+  dataset-doctor path/to/your_data.csv --config your_config.json
+  ```
 - Change the output directory:
   ```bash
   dataset-doctor path/to/your_data.csv --output-dir reports/
@@ -109,6 +113,7 @@ dataset-doctor path/to/your_data.csv
 Dataset Doctor
 ==============
 
+```text
 Overview
   Source: quotes_to_scrape_doctor_demo.csv
   Rows: 11
@@ -116,11 +121,11 @@ Overview
   Duplicate rows: 1
 
 Health Snapshot
-  Score: 65/100 (Needs Review)
-  High-missing columns (>30%): 1
-  Constant columns: 1
-  High-cardinality columns: 3
-  Outlier columns: 1
+  Score: 82/100 (Needs Review)
+    - Completeness: 85/100
+    - Uniqueness:   60/100
+    - Consistency:  90/100
+    - Stability:    90/100
   Suspicious columns: 5
 
 Warnings
@@ -129,25 +134,45 @@ Warnings
   - [WARNING] Column `primary_tag` has 4 missing values (36.4%).
 ```
 
+## Contextual Engine (Custom Config)
+
+The real power of Dataset Doctor comes from making it aware of your column **roles**. Does an ID column have 100% unique values? That's not high-cardinality, that's correct! Does a financial column have a long tail of large numbers? That's not an outlier, it's expected!
+
+Pass a `config.json` file to tell the doctor how to look at your data:
+
+```json
+{
+    "global_missing_threshold": 40.0,
+    "columns": {
+        "quote_id": {
+            "role": "id"
+        },
+        "tag_count": {
+            "allow_heavy_tail": true
+        }
+    }
+}
+```
+
 ## HTML preview
 
 This is the visual direction of the generated `report.html`.
 
 ![Dataset Doctor HTML report preview](data/assets/report-preview.png)
 
-## Generated reports
+## Generated Reports
 
-- `summary.md` gives a concise text report with overview, score, top warnings, problematic columns, numeric findings, and suggested actions.
-- `report.html` renders the same information in a beautiful, modern dashboard-like layout designed to be easier to scan and suitable for presentations.
+- `summary.md` gives a concise text report with overview, 4-dimensional score, top warnings, problematic columns, numeric findings, and suggested actions.
+- `report.html` renders the same information in a beautiful, modern dashboard-like layout (with dimensional progress bars) designed to be easier to scan and suitable for presentations.
 
 The generated HTML uses a self-contained template, so the report can be opened directly in a browser without bundling extra assets.
 
-## Demo data
+## Demo Data
 
 The repository includes demo data under `data/`.
 
 - `data/raw/quotes_to_scrape_page_1.csv` is based on page 1 of [Quotes to Scrape](https://quotes.toscrape.com/), a public practice site for scraping.
-- `data/demo/quotes_to_scrape_doctor_demo.csv` is a derived demo dataset built from that scraped source and intentionally includes missing values, a duplicate row, a constant column, high-cardinality fields, and a numeric outlier so the report is visually informative.
+- `data/demo/quotes_to_scrape_doctor_demo.csv` is a derived demo dataset intentionally injected with missing values, a duplicate row, a constant column, and numeric outliers so the report is visually informative.
 
 More detail is documented in [data/README.md](data/README.md).
 
