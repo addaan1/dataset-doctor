@@ -3,692 +3,1056 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Dataset Doctor Report - {{ payload.profile.source_name }}</title>
+  <title>Dataset Doctor — {{ payload.profile.source_name }}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:wght@500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #f8fafc;
-      --surface: #ffffff;
-      --surface-subtle: #f1f5f9;
-      --ink: #0f172a;
-      --muted: #64748b;
-      --line: #e2e8f0;
-      /* Brand / Accent */
-      --accent: #0f766e;
-      --accent-soft: #ccfbf1;
-      --accent-gradient-start: #115e59;
-      --accent-gradient-end: #0f766e;
-      /* Semantic colors */
-      --warning: #b45309;
-      --warning-soft: #fef3c7;
-      --critical: #b91c1c;
-      --critical-soft: #fee2e2;
-      --healthy: #15803d;
-      --healthy-soft: #dcfce7;
-      /* Shadows & Radii */
-      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-      --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-      --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-      --radius-lg: 16px;
-      --radius-md: 12px;
-      --radius-sm: 8px;
+      /* GitHub-inspired dark palette */
+      --bg:            #0d1117;
+      --bg-secondary:  #161b22;
+      --surface:       #1c2128;
+      --surface-hover: #22272e;
+      --border:        rgba(139, 148, 158, 0.16);
+      --border-bright: rgba(139, 148, 158, 0.3);
+
+      /* Text */
+      --ink:   #e6edf3;
+      --muted: #8b949e;
+      --dim:   #484f58;
+
+      /* Brand: purple/violet GitHub glow */
+      --accent:       #a371f7;
+      --accent-dark:  #6e40c9;
+      --accent-glow:  rgba(163, 113, 247, 0.25);
+      --accent-soft:  rgba(163, 113, 247, 0.12);
+
+      /* Status */
+      --healthy:      #3fb950;
+      --healthy-soft: rgba(63, 185, 80, 0.12);
+      --warning:      #d29922;
+      --warning-soft: rgba(210, 153, 34, 0.12);
+      --critical:     #f85149;
+      --critical-soft:rgba(248, 81, 73, 0.12);
+      --info:         #58a6ff;
+      --info-soft:    rgba(88, 166, 255, 0.12);
+
+      --radius-xl: 20px;
+      --radius-lg: 14px;
+      --radius-md: 10px;
+      --radius-sm: 6px;
     }
 
-    * { box-sizing: border-box; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
 
     body {
-      margin: 0;
-      font-family: 'Inter', sans-serif;
-      color: var(--ink);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       background: var(--bg);
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    }
-
-    h1, h2, h3 {
-      font-family: 'Lora', serif;
-      margin: 0;
-      letter-spacing: -0.01em;
       color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      overflow-x: hidden;
     }
 
-    p { margin: 0; line-height: 1.6; }
-
-    .page {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 40px 24px 80px;
-    }
-
-    /* Hero Section */
-    .hero {
-      display: grid;
-      gap: 24px;
-      padding: 40px;
-      border-radius: var(--radius-lg);
-      background: linear-gradient(135deg, var(--accent-gradient-start), var(--accent-gradient-end));
-      color: #ffffff;
-      box-shadow: var(--shadow-lg);
-      overflow: hidden;
-      position: relative;
-    }
-
-    .hero::before {
-      content: "";
-      position: absolute;
-      top: -100px;
-      right: -50px;
-      width: 400px;
-      height: 400px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    /* ─── BACKGROUND EFFECTS ─────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 700px;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% -10%, rgba(110, 64, 201, 0.3) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 40% at 80% 10%, rgba(163, 113, 247, 0.1) 0%, transparent 60%);
       pointer-events: none;
+      z-index: 0;
     }
 
-    .eyebrow {
-      font-size: 0.875rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: rgba(255, 255, 255, 0.8);
-    }
-
-    .hero-grid {
-      display: grid;
-      gap: 32px;
-      grid-template-columns: 2fr 1fr;
-      align-items: center;
+    /* ─── LAYOUT ─────────────────────────────────────────── */
+    .layout {
       position: relative;
       z-index: 1;
+      max-width: 1140px;
+      margin: 0 auto;
+      padding: 0 24px 100px;
     }
 
-    .hero-copy h1 {
-      color: #ffffff;
-      font-size: 2.25rem;
-      margin-bottom: 12px;
-    }
-
-    .hero-copy p {
-      color: rgba(255, 255, 255, 0.9);
-      font-size: 1.125rem;
-      max-width: 55ch;
-      margin-bottom: 16px;
-    }
-
-    /* Score Card inside Hero */
-    .score-card {
-      padding: 24px;
-      border-radius: var(--radius-md);
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      text-align: center;
-    }
-
-    .score-card .eyebrow {
-      color: rgba(255, 255, 255, 0.9);
-      margin-bottom: 8px;
-    }
-
-    .score-value {
-      font-size: 4rem;
-      font-weight: 700;
-      line-height: 1;
-      margin-bottom: 16px;
-      font-family: 'Inter', sans-serif;
-      letter-spacing: -0.03em;
-    }
-
-    /* Badges */
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 14px;
-      border-radius: 9999px;
-      font-size: 0.875rem;
-      font-weight: 600;
-      letter-spacing: 0.02em;
-    }
-
-    .badge.healthy { background: var(--healthy-soft); color: var(--healthy); }
-    .badge.needs-review { background: var(--warning-soft); color: var(--warning); }
-    .badge.critical { background: var(--critical-soft); color: var(--critical); }
-
-    /* Dimensional Score Bars */
-    .score-breakdown {
-      margin-top: 20px;
-      width: 100%;
-      background: rgba(0, 0, 0, 0.2);
-      padding: 16px;
-      border-radius: var(--radius-md);
-    }
-    
-    .score-bar-row {
+    /* ─── TOPBAR ─────────────────────────────────────────── */
+    .topbar {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 8px;
+      padding: 20px 0;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 56px;
     }
-    
-    .score-bar-row:last-child {
-      margin-bottom: 0;
+
+    .topbar-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
-    
-    .score-bar-label {
+
+    .topbar-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent-dark), var(--accent));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+
+    .topbar-name {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--ink);
+      letter-spacing: -0.01em;
+    }
+
+    .topbar-meta {
       font-size: 0.8rem;
-      color: rgba(255, 255, 255, 0.9);
-      width: 85px;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+      color: var(--muted);
     }
-    
-    .score-bar-track {
-      flex: 1;
-      height: 6px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 99px;
-      margin: 0 12px;
+
+    /* ─── HERO ───────────────────────────────────────────── */
+    .hero {
+      text-align: center;
+      padding: 20px 0 56px;
+    }
+
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(163, 113, 247, 0.4);
+      background: rgba(163, 113, 247, 0.08);
+      color: var(--accent);
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+
+    .hero-title {
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1.1;
+      color: var(--ink);
+      margin-bottom: 14px;
+    }
+
+    .hero-title span {
+      background: linear-gradient(120deg, #a371f7, #79c0ff, #a371f7);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: shimmer 4s linear infinite;
+    }
+
+    @keyframes shimmer {
+      to { background-position: 200% center; }
+    }
+
+    .hero-sub {
+      color: var(--muted);
+      font-size: 1rem;
+      max-width: 500px;
+      margin: 0 auto;
+      line-height: 1.7;
+    }
+
+    /* ─── SCORE SECTION ──────────────────────────────────── */
+    .score-section {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 48px;
+    }
+
+    @media (max-width: 760px) { .score-section { grid-template-columns: 1fr; } }
+
+    /* Main score card */
+    .main-score-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 36px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      position: relative;
       overflow: hidden;
     }
-    
-    .score-bar-fill {
-      height: 100%;
-      border-radius: 99px;
-      background: var(--healthy);
-    }
-    .score-bar-fill.warn { background: var(--warning); }
-    .score-bar-fill.crit { background: var(--critical); }
-    
-    .score-bar-val {
-      font-size: 0.85rem;
-      font-weight: 600;
-      width: 32px;
-      text-align: right;
-      color: white;
+
+    .main-score-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 80% 60% at 50% 0%, var(--accent-glow), transparent 70%);
+      pointer-events: none;
     }
 
-    /* Standard Sections */
-    .section {
-      margin-top: 40px;
+    .score-ring-wrap { position: relative; margin-bottom: 20px; }
+
+    .score-ring {
+      width: 140px;
+      height: 140px;
+      filter: drop-shadow(0 0 24px var(--accent-glow));
     }
 
-    .section-head {
-      margin-bottom: 24px;
+    .score-ring-val {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
     }
 
-    .section-head h2 {
-      font-size: 1.75rem;
-      margin-bottom: 8px;
-    }
-
-    .section-head p {
-      color: var(--muted);
-      font-size: 1.05rem;
-    }
-
-    /* Grid layout for stats/cards */
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 20px;
-    }
-
-    .card {
-      padding: 24px;
-      border-radius: var(--radius-md);
-      background: var(--surface);
-      border: 1px solid var(--line);
-      box-shadow: var(--shadow-sm);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .card:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow);
-    }
-
-    .card-label {
-      font-size: 0.875rem;
-      font-weight: 600;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 12px;
-    }
-
-    .card-value {
-      font-size: 2.25rem;
-      font-weight: 700;
-      line-height: 1.1;
+    .score-number {
+      font-size: 2.6rem;
+      font-weight: 800;
+      letter-spacing: -0.05em;
+      line-height: 1;
       color: var(--ink);
     }
 
-    .card-subtext {
-      margin-top: 8px;
+    .score-denom {
+      font-size: 0.85rem;
       color: var(--muted);
-      font-size: 0.95rem;
+      font-weight: 500;
     }
 
-    /* Warning List styling */
-    .warning-list {
-      display: grid;
-      gap: 16px;
+    .score-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      margin-top: 4px;
+      margin-bottom: 12px;
+    }
+    .score-badge.healthy      { background: var(--healthy-soft);  color: var(--healthy);  border: 1px solid rgba(63,185,80,0.3); }
+    .score-badge.needs-review { background: var(--warning-soft);  color: var(--warning);  border: 1px solid rgba(210,153,34,0.3); }
+    .score-badge.critical     { background: var(--critical-soft); color: var(--critical); border: 1px solid rgba(248,81,73,0.3); }
+
+    .score-meta-row {
+      display: flex;
+      gap: 20px;
+      font-size: 0.8rem;
+      color: var(--muted);
     }
 
-    .warning-item {
-      padding: 20px 24px;
-      border-radius: var(--radius-md);
-      border-left: 4px solid transparent;
+    .score-meta-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    .score-meta-item strong { font-size: 1.1rem; color: var(--ink); font-weight: 700; }
+
+    /* Dimension bars card */
+    .dim-card {
       background: var(--surface);
-      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 28px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
     }
 
-    .warning-item.critical {
-      border-left-color: var(--critical);
-      background: linear-gradient(90deg, var(--critical-soft) 0%, var(--surface) 20%);
+    .dim-card-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
     }
 
-    .warning-item.warning {
-      border-left-color: var(--warning);
-      background: linear-gradient(90deg, var(--warning-soft) 0%, var(--surface) 20%);
+    .dim-row {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
 
-    .warning-item.info {
-      border-left-color: var(--accent);
-      background: linear-gradient(90deg, var(--accent-soft) 0%, var(--surface) 20%);
+    .dim-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
 
-    .warning-meta {
+    .dim-label {
+      font-size: 0.87rem;
+      font-weight: 500;
+      color: var(--ink);
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 8px;
+    }
+
+    .dim-icon {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+    }
+
+    .dim-val {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .dim-track {
+      height: 7px;
+      background: rgba(139, 148, 158, 0.12);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .dim-fill {
+      height: 100%;
+      border-radius: 99px;
+      transition: width 1s ease;
+    }
+    .dim-fill.ok   { background: linear-gradient(90deg, #3fb950, #56d364); }
+    .dim-fill.warn { background: linear-gradient(90deg, #d29922, #e3b341); }
+    .dim-fill.crit { background: linear-gradient(90deg, #f85149, #ff7b72); }
+
+    /* ─── SECTION ────────────────────────────────────────── */
+    .section {
+      margin-bottom: 48px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .section-text h2 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--ink);
+      letter-spacing: -0.02em;
+      margin-bottom: 3px;
+    }
+
+    .section-text p {
+      font-size: 0.875rem;
+      color: var(--muted);
+    }
+
+    /* ─── STAT CARDS ─────────────────────────────────────── */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+
+    @media (max-width: 760px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px 22px;
+      transition: border-color 0.2s ease, transform 0.2s ease;
+    }
+
+    .stat-card:hover {
+      border-color: var(--border-bright);
+      transform: translateY(-2px);
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
       margin-bottom: 10px;
     }
 
-    .warning-meta .warning-title {
-      font-size: 1.1rem;
-      font-weight: 600;
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      color: var(--ink);
+      line-height: 1;
+      margin-bottom: 6px;
     }
 
-    .pill {
-      display: inline-block;
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-size: 0.75rem;
-      font-weight: 700;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
+    .stat-sub {
+      font-size: 0.8rem;
+      color: var(--muted);
     }
 
-    .critical .pill { background: var(--critical); color: #fff; }
-    .warning .pill { background: var(--warning); color: #fff; }
-    .info .pill { background: var(--accent); color: #fff; }
+    /* ─── WARNING ITEMS ──────────────────────────────────── */
+    .warning-list { display: flex; flex-direction: column; gap: 10px; }
 
-    /* Layout specific */
-    .two-col {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 24px;
-    }
-
-    /* Tables */
-    .table-container {
+    .warning-item {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
       background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: var(--radius-md);
-      box-shadow: var(--shadow-sm);
-      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 16px 20px;
+      transition: border-color 0.2s ease;
+    }
+
+    .warning-item:hover { border-color: var(--border-bright); }
+
+    .warning-item.critical { border-left: 3px solid var(--critical); }
+    .warning-item.warning  { border-left: 3px solid var(--warning);  }
+    .warning-item.info     { border-left: 3px solid var(--info);     }
+
+    .warning-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-top: 6px;
+      flex-shrink: 0;
+    }
+    .warning-dot.critical { background: var(--critical); box-shadow: 0 0 8px var(--critical); }
+    .warning-dot.warning  { background: var(--warning);  box-shadow: 0 0 8px var(--warning);  }
+    .warning-dot.info     { background: var(--info);     box-shadow: 0 0 8px var(--info);     }
+
+    .warning-body { flex: 1; }
+
+    .warning-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 4px;
+    }
+
+    .warning-pill {
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .warning-pill.critical { background: var(--critical-soft); color: var(--critical); }
+    .warning-pill.warning  { background: var(--warning-soft);  color: var(--warning);  }
+    .warning-pill.info     { background: var(--info-soft);     color: var(--info);     }
+
+    .warning-title-text {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .warning-message { font-size: 0.85rem; color: var(--muted); line-height: 1.6; }
+
+    .warning-action {
+      margin-top: 8px;
+      font-size: 0.8rem;
+      color: var(--dim);
+      padding: 8px 12px;
+      background: rgba(139, 148, 158, 0.06);
+      border-radius: var(--radius-sm);
+    }
+
+    .warning-action strong { color: var(--muted); }
+
+    /* ─── TABLES ─────────────────────────────────────────── */
+    .table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.95rem;
-    }
-
-    th, td {
-      text-align: left;
-      padding: 14px 20px;
-      border-bottom: 1px solid var(--line);
     }
 
     thead th {
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 0.73rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      background: rgba(139, 148, 158, 0.06);
+      border-bottom: 1px solid var(--border);
+    }
+
+    tbody td {
+      padding: 13px 16px;
+      font-size: 0.875rem;
+      border-bottom: 1px solid var(--border);
+      color: var(--ink);
+      vertical-align: middle;
+    }
+
+    tbody tr:last-child td { border-bottom: none; }
+
+    tbody tr {
+      transition: background 0.15s ease;
+    }
+
+    tbody tr:hover { background: rgba(139, 148, 158, 0.04); }
+
+    .code-chip {
+      font-family: 'SFMono-Regular', Consolas, monospace;
+      background: rgba(139, 148, 158, 0.1);
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 2px 8px;
+      border-radius: 5px;
+      font-size: 0.78rem;
+    }
+
+    /* ─── FLAGS ──────────────────────────────────────────── */
+    .flag-list { display: flex; flex-wrap: wrap; gap: 5px; }
+
+    .flag {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid;
+    }
+    .flag.missing  { background: var(--critical-soft); color: var(--critical); border-color: rgba(248,81,73,0.3); }
+    .flag.outliers { background: var(--warning-soft);  color: var(--warning);  border-color: rgba(210,153,34,0.3); }
+    .flag.default  { background: rgba(139,148,158,0.1); color: var(--muted); border-color: var(--border); }
+
+    /* ─── TWO COL ────────────────────────────────────────── */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1.5fr;
+      gap: 20px;
+    }
+    @media ( max-width: 760px) { .two-col { grid-template-columns: 1fr; } }
+
+    /* ─── ACTION LIST CARD ───────────────────────────────── */
+    .action-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px 28px;
+    }
+
+    .action-card-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .action-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .action-list li {
+      display: flex;
+      gap: 10px;
+      font-size: 0.875rem;
+      color: var(--ink);
+      line-height: 1.5;
+    }
+
+    .action-list li::before {
+      content: '→';
+      color: var(--accent);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    /* ─── TYPE DOUGHNUT TABLE  ───────────────────────────── */
+    .type-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .type-row:last-child { border-bottom: none; }
+
+    .type-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .type-dot.categorical { background: #a371f7; }
+    .type-dot.numeric     { background: #58a6ff; }
+    .type-dot.boolean     { background: #3fb950; }
+    .type-dot.datetime    { background: #d29922; }
+
+    .type-name { font-size: 0.88rem; color: var(--ink); flex: 1; }
+    .type-count { font-size: 0.88rem; font-weight: 700; color: var(--ink); }
+
+    /* ─── COLUMN PROFILE TABLE ───────────────────────────── */
+    .col-name-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .col-name-text {
+      font-weight: 600;
+      font-family: 'SFMono-Regular', Consolas, monospace;
       font-size: 0.85rem;
+    }
+
+    .role-chip {
+      display: inline-block;
+      padding: 1px 7px;
+      border-radius: 999px;
+      font-size: 0.68rem;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: var(--muted);
-      background: var(--surface-subtle);
-      border-bottom: 2px solid var(--line);
+      color: var(--accent);
+      background: var(--accent-soft);
+      border: 1px solid rgba(163,113,247,0.2);
     }
 
-    tbody tr:last-child td {
-      border-bottom: none;
-    }
-
-    tbody tr:hover {
-      background: var(--surface-subtle);
-    }
-
-    /* Badges in tables */
-    .flag-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-
-    .flag {
-      display: inline-flex;
-      align-items: center;
-      padding: 4px 10px;
-      border-radius: 999px;
-      background: var(--surface-subtle);
-      color: var(--muted);
+    /* ─── FOOTER ─────────────────────────────────────────── */
+    .footer {
+      text-align: center;
+      padding: 32px 0;
+      border-top: 1px solid var(--border);
+      color: var(--dim);
       font-size: 0.8rem;
-      font-weight: 600;
-      border: 1px solid var(--line);
+      margin-top: 20px;
     }
 
-    /* Warning/Flag specific colors in table */
-    .flag.missing { color: var(--critical); border-color: var(--critical-soft); background: var(--critical-soft); }
-    .flag.outliers { color: var(--warning); border-color: var(--warning-soft); background: var(--warning-soft); }
-
-    .actions {
-      margin: 0;
-      padding-left: 24px;
-    }
-
-    .actions li {
-      margin-bottom: 12px;
-      color: var(--ink);
-    }
-
-    .muted {
-      color: var(--muted);
-    }
-
-    @media (max-width: 960px) {
-      .hero-grid,
-      .two-col {
-        grid-template-columns: 1fr;
-      }
-      .page {
-        padding: 24px 16px 60px;
-      }
-      .hero {
-        padding: 32px 24px;
-      }
-    }
+    .footer a { color: var(--accent); text-decoration: none; }
   </style>
 </head>
 <body>
-  <main class="page">
-    <section class="hero">
-      <div class="hero-grid">
-        <div class="hero-copy">
-          <div class="eyebrow">Dataset Doctor Report</div>
-          <h1>{{ payload.profile.source_name }}</h1>
-          <p>
-            A first-pass data health report covering structure, missingness, duplicates,
-            semantic types, numeric summaries, outliers, and rule-based warnings.
-          </p>
-          <div style="color: rgba(255, 255, 255, 0.7); font-size: 0.95rem;">
-            Generated at {{ payload.generated_at }}
+<div class="layout">
+
+  <!-- TOPBAR -->
+  <nav class="topbar">
+    <div class="topbar-brand">
+      <div class="topbar-icon">🩺</div>
+      <span class="topbar-name">Dataset Doctor</span>
+    </div>
+    <span class="topbar-meta">Generated {{ payload.generated_at }}</span>
+  </nav>
+
+  <!-- HERO -->
+  <header class="hero">
+    <div class="hero-eyebrow">
+      <span>⚕️</span> Data Health Report
+    </div>
+    <h1 class="hero-title">
+      <span>{{ payload.profile.source_name }}</span>
+    </h1>
+    <p class="hero-sub">
+      Contextual data quality analysis covering structure, missingness, duplicates,
+      semantic types, outliers, and dimensional health scoring.
+    </p>
+  </header>
+
+  <!-- SCORE SECTION -->
+  <div class="score-section">
+
+    <!-- Main score ring -->
+    <div class="main-score-card">
+      <div class="score-ring-wrap">
+        {% set score = payload.score.value %}
+        {% set circ = 3.14159 * 2 * 54 %}
+        {% set dash = (score / 100) * circ %}
+        <svg class="score-ring" viewBox="0 0 120 120">
+          <defs>
+            <linearGradient id="ring-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+              {% if score >= 85 %}
+                <stop offset="0%" stop-color="#3fb950"/>
+                <stop offset="100%" stop-color="#56d364"/>
+              {% elif score >= 60 %}
+                <stop offset="0%" stop-color="#d29922"/>
+                <stop offset="100%" stop-color="#e3b341"/>
+              {% else %}
+                <stop offset="0%" stop-color="#f85149"/>
+                <stop offset="100%" stop-color="#ff7b72"/>
+              {% endif %}
+            </linearGradient>
+          </defs>
+          <!-- Track -->
+          <circle cx="60" cy="60" r="54"
+            fill="none" stroke="rgba(139,148,158,0.12)"
+            stroke-width="9" />
+          <!-- Fill -->
+          <circle cx="60" cy="60" r="54"
+            fill="none" stroke="url(#ring-grad)"
+            stroke-width="9"
+            stroke-linecap="round"
+            stroke-dasharray="{{ "%.1f"|format(dash) }} {{ "%.1f"|format(circ) }}"
+            stroke-dashoffset="{{ "%.1f"|format(circ / 4) }}"
+            transform="rotate(-90 60 60)" />
+        </svg>
+        <div class="score-ring-val">
+          <span class="score-number">{{ score }}</span>
+          <span class="score-denom">/ 100</span>
+        </div>
+      </div>
+
+      <span class="score-badge {{ payload.score.css_modifier }}">
+        {% if payload.score.badge == "Healthy" %}✓{% elif payload.score.badge == "Critical" %}✕{% else %}⚠{% endif %}
+        {{ payload.score.badge }}
+      </span>
+
+      <div class="score-meta-row">
+        <div class="score-meta-item">
+          <strong>{{ payload.profile.suspicious_column_count }}</strong>
+          <span>Suspicious</span>
+        </div>
+        <div class="score-meta-item">
+          <strong>{{ payload.warnings|length }}</strong>
+          <span>Warnings</span>
+        </div>
+        <div class="score-meta-item">
+          <strong>{{ payload.profile.duplicate_rows }}</strong>
+          <span>Duplicates</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dimension bars -->
+    <div class="dim-card">
+      <div class="dim-card-title">Dimensional Breakdown</div>
+
+      {% set dims = [
+        ("Completeness", payload.score.completeness, "📦"),
+        ("Uniqueness",   payload.score.uniqueness,   "🔑"),
+        ("Consistency",  payload.score.consistency,  "⚙️"),
+        ("Stability",    payload.score.stability,    "📊")
+      ] %}
+
+      {% for name, val, icon in dims %}
+      <div class="dim-row">
+        <div class="dim-header">
+          <div class="dim-label">
+            <span>{{ icon }}</span>
+            {{ name }}
+          </div>
+          <div class="dim-val">{{ val }}</div>
+        </div>
+        <div class="dim-track">
+          <div class="dim-fill {% if val < 60 %}crit{% elif val < 85 %}warn{% else %}ok{% endif %}"
+               style="width: {{ val }}%;"></div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- OVERVIEW STATS -->
+  <section class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background: rgba(88,166,255,0.12);">📋</div>
+      <div class="section-text">
+        <h2>Overview</h2>
+        <p>Structural snapshot of the dataset at a glance.</p>
+      </div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-label">Rows</div>
+        <div class="stat-value">{{ payload.profile.row_count }}</div>
+        <div class="stat-sub">Total records</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Columns</div>
+        <div class="stat-value">{{ payload.profile.column_count }}</div>
+        <div class="stat-sub">Detected fields</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Duplicate Rows</div>
+        <div class="stat-value" style="{% if payload.profile.duplicate_pct > 5 %}color: var(--warning);{% endif %}">
+          {{ payload.profile.duplicate_rows }}
+        </div>
+        <div class="stat-sub">{{ "%.1f"|format(payload.profile.duplicate_pct) }}% of dataset</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Outlier Columns</div>
+        <div class="stat-value" style="{% if payload.profile.outlier_columns|length > 0 %}color: var(--warning);{% endif %}">
+          {{ payload.profile.outlier_columns|length }}
+        </div>
+        <div class="stat-sub">IQR-flagged numerics</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WARNINGS -->
+  <section class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background: rgba(248,81,73,0.1);">⚠️</div>
+      <div class="section-text">
+        <h2>Warnings</h2>
+        <p>Contextual findings ordered by severity for quick triage.</p>
+      </div>
+    </div>
+    <div class="warning-list">
+      {% for w in payload.warnings %}
+      <article class="warning-item {{ w.level }}">
+        <div class="warning-dot {{ w.level }}"></div>
+        <div class="warning-body">
+          <div class="warning-top">
+            <span class="warning-pill {{ w.level }}">{{ w.level }}</span>
+            <span class="warning-title-text">{{ w.title }}</span>
+          </div>
+          <p class="warning-message">{{ w.message }}</p>
+          <div class="warning-action">
+            <strong>Action:</strong> {{ w.recommended_action }}
           </div>
         </div>
-        <aside class="score-card">
-          <div class="eyebrow">Overall Score</div>
-          <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
-            <div class="score-value" style="margin-bottom: 0;">{{ payload.score.value }}</div>
-            <span class="badge {{ payload.score.css_modifier }}">{{ payload.score.badge }}</span>
-          </div>
-          
-          <div class="score-breakdown">
-            <div class="score-bar-row">
-              <div class="score-bar-label">Complete</div>
-              <div class="score-bar-track"><div class="score-bar-fill {% if payload.score.completeness < 60 %}crit{% elif payload.score.completeness < 85 %}warn{% endif %}" style="width: {{ payload.score.completeness }}%;"></div></div>
-              <div class="score-bar-val">{{ payload.score.completeness }}</div>
-            </div>
-            <div class="score-bar-row">
-              <div class="score-bar-label">Unique</div>
-              <div class="score-bar-track"><div class="score-bar-fill {% if payload.score.uniqueness < 60 %}crit{% elif payload.score.uniqueness < 85 %}warn{% endif %}" style="width: {{ payload.score.uniqueness }}%;"></div></div>
-              <div class="score-bar-val">{{ payload.score.uniqueness }}</div>
-            </div>
-            <div class="score-bar-row">
-              <div class="score-bar-label">Consistent</div>
-              <div class="score-bar-track"><div class="score-bar-fill {% if payload.score.consistency < 60 %}crit{% elif payload.score.consistency < 85 %}warn{% endif %}" style="width: {{ payload.score.consistency }}%;"></div></div>
-              <div class="score-bar-val">{{ payload.score.consistency }}</div>
-            </div>
-            <div class="score-bar-row">
-              <div class="score-bar-label">Stable</div>
-              <div class="score-bar-track"><div class="score-bar-fill {% if payload.score.stability < 60 %}crit{% elif payload.score.stability < 85 %}warn{% endif %}" style="width: {{ payload.score.stability }}%;"></div></div>
-              <div class="score-bar-val">{{ payload.score.stability }}</div>
-            </div>
-          </div>
+      </article>
+      {% endfor %}
+      {% if not payload.warnings %}
+      <div style="text-align:center; padding: 32px; color: var(--muted); font-size: 0.9rem;">
+        🎉 No warnings generated. Dataset looks clean.
+      </div>
+      {% endif %}
+    </div>
+  </section>
 
-        </aside>
+  <!-- STRUCTURE SUMMARY -->
+  <section class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background: rgba(163,113,247,0.12);">🗂️</div>
+      <div class="section-text">
+        <h2>Structure Summary</h2>
+        <p>Type distribution and recommended next steps for cleanup.</p>
       </div>
-    </section>
+    </div>
+    <div class="two-col">
 
-    <section class="section">
-      <div class="section-head">
-        <h2>Overview</h2>
-        <p>Quick context for the dataset and the most visible structural risks.</p>
-      </div>
-      <div class="cards">
-        <article class="card">
-          <div class="card-label">Rows</div>
-          <div class="card-value">{{ payload.profile.row_count }}</div>
-          <div class="card-subtext">Observed records in the CSV.</div>
-        </article>
-        <article class="card">
-          <div class="card-label">Columns</div>
-          <div class="card-value">{{ payload.profile.column_count }}</div>
-          <div class="card-subtext">Detected fields after normalization.</div>
-        </article>
-        <article class="card">
-          <div class="card-label">Duplicates</div>
-          <div class="card-value">{{ payload.profile.duplicate_rows }}</div>
-          <div class="card-subtext">{{ "%.1f"|format(payload.profile.duplicate_pct) }}% duplicate rows.</div>
-        </article>
-        <article class="card">
-          <div class="card-label">Outlier Columns</div>
-          <div class="card-value">{{ payload.profile.outlier_columns|length }}</div>
-          <div class="card-subtext">Numeric fields with IQR outliers.</div>
-        </article>
-      </div>
-    </section>
-
-    <section class="section">
-      <div class="section-head">
-        <h2>Warnings</h2>
-        <p>Rule-based findings ordered by severity to support quick cleanup decisions.</p>
-      </div>
-      <div class="warning-list">
-        {% for warning in payload.warnings %}
-          <article class="warning-item {{ warning.level }}">
-            <div class="warning-meta">
-              <span class="pill">{{ warning.level }}</span>
-              <span class="warning-title">{{ warning.title }}</span>
-            </div>
-            <p>{{ warning.message }}</p>
-            <p class="muted" style="margin-top: 8px;">
-              <strong>Recommended action:</strong> {{ warning.recommended_action }}
-            </p>
-          </article>
+      <!-- Type distribution -->
+      <div class="table-wrap" style="padding: 20px 24px;">
+        <div style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:10px;">
+          Semantic Types
+        </div>
+        {% for stype in ["categorical", "numeric", "boolean", "datetime"] %}
+        <div class="type-row">
+          <div class="type-dot {{ stype }}"></div>
+          <div class="type-name">{{ stype | title }}</div>
+          <div class="type-count">{{ payload.profile.semantic_type_counts.get(stype, 0) }}</div>
+        </div>
         {% endfor %}
       </div>
-    </section>
 
-    <section class="section">
-      <div class="section-head">
-        <h2>Structure Summary</h2>
-        <p>A compact view of type balance and columns that deserve extra attention.</p>
+      <!-- Action card -->
+      <div class="action-card">
+        <div class="action-card-title">Suggested Actions</div>
+        <ul class="action-list">
+          {% for action in payload.suggested_actions %}
+          <li>{{ action }}</li>
+          {% else %}
+          <li style="color: var(--muted); list-style: none;">No immediate actions required.</li>
+          {% endfor %}
+        </ul>
       </div>
-      <div class="two-col">
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Semantic Type</th>
-                <th>Count</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for semantic_type in ["categorical", "numeric", "boolean", "datetime"] %}
-                <tr>
-                  <td style="font-weight: 500;">{{ semantic_type | title }}</td>
-                  <td>{{ payload.profile.semantic_type_counts.get(semantic_type, 0) }}</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-        <div class="card" style="margin: 0;">
-          <div class="card-label" style="margin-bottom: 20px;">Suggested Next Steps</div>
-          <ol class="actions">
-            {% for action in payload.suggested_actions %}
-              <li>{{ action }}</li>
-            {% endfor %}
-            {% if not payload.suggested_actions %}
-              <li class="muted">No immediate actions required.</li>
-            {% endif %}
-          </ol>
-        </div>
-      </div>
-    </section>
+    </div>
+  </section>
 
-    <section class="section">
-      <div class="section-head">
+  <!-- PROBLEMATIC COLUMNS -->
+  <section class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background: rgba(210,153,34,0.1);">🔍</div>
+      <div class="section-text">
         <h2>Problematic Columns</h2>
-        <p>Columns with high missingness, constant values, high-cardinality patterns, or outliers.</p>
+        <p>Columns with high missingness, constant values, high-cardinality, or outliers.</p>
       </div>
-      <div class="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>Column</th>
-              <th>Role</th>
-              <th>Type</th>
-              <th>Missing</th>
-              <th>Unique Ratio</th>
-              <th>Active Flags</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% if payload.problematic_columns %}
-              {% for column in payload.problematic_columns %}
-                <tr>
-                  <td><strong>{{ column.name }}</strong></td>
-                  <td>{{ column.role or '-' }}</td>
-                  <td>
-                    <span style="font-family: monospace; color: var(--muted); background: var(--surface-subtle); padding: 2px 6px; border-radius: 4px; font-size: 0.85rem;">
-                      {{ column.semantic_type }}
-                    </span>
-                  </td>
-                  <td>{{ "%.1f"|format(column.missing_pct) }}%</td>
-                  <td>{{ "%.1f"|format(column.unique_ratio * 100) }}%</td>
-                  <td>
-                    <div class="flag-list">
-                      {% for flag in column.flags %}
-                        <span class="flag {% if 'missing' in flag %}missing{% elif 'outliers' in flag %}outliers{% endif %}">{{ flag }}</span>
-                      {% endfor %}
-                    </div>
-                  </td>
-                </tr>
-              {% endfor %}
-            {% else %}
-              <tr>
-                <td colspan="5" class="muted" style="text-align: center; padding: 24px;">No problematic columns were detected.</td>
-              </tr>
-            {% endif %}
-          </tbody>
-        </table>
-      </div>
-    </section>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Column</th>
+            <th>Role</th>
+            <th>Type</th>
+            <th>Missing</th>
+            <th>Unique Ratio</th>
+            <th>Active Flags</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for col in payload.problematic_columns %}
+          <tr>
+            <td>
+              <div class="col-name-cell">
+                <span class="col-name-text">{{ col.name }}</span>
+                {% if col.role %}<span class="role-chip">{{ col.role }}</span>{% endif %}
+              </div>
+            </td>
+            <td><span class="code-chip">{{ col.semantic_type }}</span></td>
+            <td><span class="code-chip">{{ col.role or '—' }}</span></td>
+            <td>{{ "%.1f"|format(col.missing_pct) }}%</td>
+            <td>{{ "%.1f"|format(col.unique_ratio * 100) }}%</td>
+            <td>
+              <div class="flag-list">
+                {% for flag in col.flags %}
+                  <span class="flag {% if 'missing' in flag %}missing{% elif 'outliers' in flag %}outliers{% else %}default{% endif %}">
+                    {{ flag }}
+                  </span>
+                {% endfor %}
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" style="text-align:center; padding: 32px; color: var(--muted);">
+              ✅ No problematic columns detected.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
 
-    <section class="section">
-      <div class="section-head">
+  <!-- NUMERIC FINDINGS -->
+  <section class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background: rgba(88,166,255,0.1);">📈</div>
+      <div class="section-text">
         <h2>Numeric Findings</h2>
-        <p>Distribution signals for numeric columns using lightweight descriptive statistics and IQR outlier checks.</p>
+        <p>Distribution signals and IQR-based outlier bounds for numeric columns.</p>
       </div>
-      <div class="warning-list">
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Column</th>
-                <th>Min</th>
-                <th>Median</th>
-                <th>Mean</th>
-                <th>Max</th>
-                <th>Std</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% if payload.numeric_columns %}
-                {% for column in payload.numeric_columns %}
-                  <tr>
-                    <td style="font-family: monospace; font-size: 1rem;">{{ column.name }}</td>
-                    <td>{{ column.numeric_summary.min_value|number }}</td>
-                    <td>{{ column.numeric_summary.median|number }}</td>
-                    <td>{{ column.numeric_summary.mean|number }}</td>
-                    <td>{{ column.numeric_summary.max_value|number }}</td>
-                    <td>{{ column.numeric_summary.std|number }}</td>
-                  </tr>
-                {% endfor %}
-              {% else %}
-                <tr>
-                  <td colspan="6" class="muted" style="text-align: center; padding: 24px;">No numeric columns available.</td>
-                </tr>
-              {% endif %}
-            </tbody>
-          </table>
-        </div>
+    </div>
 
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Column</th>
-                <th>Q1</th>
-                <th>Q3</th>
-                <th>IQR</th>
-                <th>Bounds</th>
-                <th>Outliers</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% if payload.numeric_columns %}
-                {% for column in payload.numeric_columns %}
-                  <tr>
-                    <td style="font-family: monospace; font-size: 1rem;">{{ column.name }}</td>
-                    <td>{{ column.numeric_summary.q1|number }}</td>
-                    <td>{{ column.numeric_summary.q3|number }}</td>
-                    <td>{{ column.numeric_summary.iqr|number }}</td>
-                    <td class="muted">
-                      {{ column.numeric_summary.lower_bound|number }} to {{ column.numeric_summary.upper_bound|number }}
-                    </td>
-                    <td style="font-weight: 500; {% if column.numeric_summary.outlier_count > 0 %}color: var(--warning);{% endif %}">
-                      {{ column.numeric_summary.outlier_count }}
-                      <span class="muted" style="font-weight: normal;">({{ "%.1f"|format(column.numeric_summary.outlier_pct) }}%)</span>
-                    </td>
-                  </tr>
-                {% endfor %}
-              {% else %}
-                <tr>
-                  <td colspan="6" class="muted" style="text-align: center; padding: 24px;">No numeric columns available.</td>
-                </tr>
-              {% endif %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-  </main>
+    <!-- Stats table -->
+    <div class="table-wrap" style="margin-bottom: 16px;">
+      <table>
+        <thead>
+          <tr>
+            <th>Column</th>
+            <th>Min</th>
+            <th>Median</th>
+            <th>Mean</th>
+            <th>Max</th>
+            <th>Std Dev</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for col in payload.numeric_columns %}
+          <tr>
+            <td><span class="col-name-text">{{ col.name }}</span></td>
+            <td>{{ col.numeric_summary.min_value|number }}</td>
+            <td>{{ col.numeric_summary.median|number }}</td>
+            <td>{{ col.numeric_summary.mean|number }}</td>
+            <td>{{ col.numeric_summary.max_value|number }}</td>
+            <td>{{ col.numeric_summary.std|number }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" style="text-align:center; padding:32px; color:var(--muted);">
+              No numeric columns available.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- IQR table -->
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Column</th>
+            <th>Q1</th>
+            <th>Q3</th>
+            <th>IQR</th>
+            <th>Valid Bounds</th>
+            <th>Outliers</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for col in payload.numeric_columns %}
+          <tr>
+            <td><span class="col-name-text">{{ col.name }}</span></td>
+            <td>{{ col.numeric_summary.q1|number }}</td>
+            <td>{{ col.numeric_summary.q3|number }}</td>
+            <td>{{ col.numeric_summary.iqr|number }}</td>
+            <td style="color:var(--muted);">
+              {{ col.numeric_summary.lower_bound|number }} → {{ col.numeric_summary.upper_bound|number }}
+            </td>
+            <td>
+              <span style="font-weight: 600; {% if col.numeric_summary.outlier_count > 0 %}color: var(--warning);{% else %}color: var(--muted);{% endif %}">
+                {{ col.numeric_summary.outlier_count }}
+              </span>
+              <span style="color:var(--dim); font-size:0.8rem;">
+                ({{ "%.1f"|format(col.numeric_summary.outlier_pct) }}%)
+              </span>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" style="text-align:center; padding:32px; color:var(--muted);">
+              No numeric columns available.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</div>
+
+<!-- FOOTER -->
+<footer class="footer layout" style="max-width:1140px; margin: 0 auto;">
+  <p>
+    Generated by <a href="https://github.com/addaan1/dataset-doctor" target="_blank">Dataset Doctor</a>
+    &nbsp;·&nbsp; {{ payload.generated_at }}
+  </p>
+</footer>
+
 </body>
 </html>
