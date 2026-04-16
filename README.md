@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="data/assets/readme_banner.png" alt="Dataset Doctor Banner" width="80%">
+<img src="data/assets/readme_banner.png" alt="Dataset Doctor Banner" width="100%">
 
 # Dataset Doctor
 
