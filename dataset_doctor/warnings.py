@@ -20,8 +20,6 @@ def generate_warnings(profile: DatasetProfile) -> list[DatasetWarning]:
     warnings: list[DatasetWarning] = []
 
     for column in profile.columns:
-        role = column.role or "feature"
-        
         # Missing values (Critical > 50%, Warning > flag)
         if column.missing_pct >= 50.0:
             warnings.append(
