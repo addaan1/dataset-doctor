@@ -20,6 +20,9 @@ def generate_warnings(profile: DatasetProfile) -> list[DatasetWarning]:
     warnings: list[DatasetWarning] = []
 
     for column in profile.columns:
+        role = column.role or "feature"
+        
+        # Missing values (Critical > 50%, Warning > flag)
         if column.missing_pct >= 50.0:
             warnings.append(
                 DatasetWarning(
@@ -47,6 +50,7 @@ def generate_warnings(profile: DatasetProfile) -> list[DatasetWarning]:
                 )
             )
 
+        # Constant Columns
         if column.is_constant:
             warnings.append(
                 DatasetWarning(
@@ -58,6 +62,7 @@ def generate_warnings(profile: DatasetProfile) -> list[DatasetWarning]:
                 )
             )
 
+        # High Cardinality 
         if column.is_high_cardinality:
             warnings.append(
                 DatasetWarning(
@@ -72,8 +77,38 @@ def generate_warnings(profile: DatasetProfile) -> list[DatasetWarning]:
                 )
             )
 
+        # Mixed Types
+        if column.is_mixed_type:
+             warnings.append(
+                DatasetWarning(
+                    level="critical",
+                    title=f"Mixed types in `{column.name}`",
+                    message=f"Column `{column.name}` contains multiple Python types (e.g. string and numeric).",
+                    column_name=column.name,
+                    recommended_action=f"Cleanse `{column.name}` to ensure uniform data types.",
+                )
+            )
+            
+        # Parse Failures
+        if column.parse_failure_pct > 0:
+             warnings.append(
+                DatasetWarning(
+                    level="critical",
+                    title=f"Parse failures in `{column.name}`",
+                    message=f"Column `{column.name}` failed to parse {column.parse_failure_pct:.1f}% of values into '{column.semantic_type}'.",
+                    column_name=column.name,
+                    recommended_action=f"Fix malformed '{column.semantic_type}' strings in `{column.name}`.",
+                )
+            )
+
+        # Outliers (Adjusted by config)
         if column.numeric_summary and column.numeric_summary.outlier_count > 0:
-            level = "critical" if column.numeric_summary.outlier_pct >= 10.0 else "warning"
+            if column.override.allow_heavy_tail is True:
+                # Demote severity
+                level = "info"
+            else:
+                level = "critical" if column.numeric_summary.outlier_pct >= 10.0 else "warning"
+                
             warnings.append(
                 DatasetWarning(
                     level=level,
@@ -83,10 +118,11 @@ def generate_warnings(profile: DatasetProfile) -> list[DatasetWarning]:
                         f"({column.numeric_summary.outlier_pct:.1f}%) using the IQR rule."
                     ),
                     column_name=column.name,
-                    recommended_action=f"Inspect extreme values in `{column.name}` before modeling.",
+                    recommended_action=f"Inspect extreme values in `{column.name}` before modeling." if level != "info" else f"Heavy tail noted in `{column.name}` as configured.",
                 )
             )
 
+    # Duplicates    
     if profile.duplicate_rows >= 1:
         level = "critical" if profile.duplicate_pct >= 10.0 else "warning"
         warnings.append(
@@ -102,6 +138,7 @@ def generate_warnings(profile: DatasetProfile) -> list[DatasetWarning]:
             )
         )
 
+    # Fallback info
     if not warnings:
         warnings.append(
             DatasetWarning(

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from dataset_doctor.config import ColumnOverride
 
 
 @dataclass(slots=True, frozen=True)
@@ -36,7 +37,18 @@ class ColumnProfile:
     flagged_missing: bool
     is_constant: bool
     is_high_cardinality: bool
+    
+    # Advanced / Contextual checks
+    parse_failure_pct: float = 0.0
+    is_mixed_type: bool = False
+    
+    # Role & Configs
+    override: ColumnOverride = field(default_factory=ColumnOverride)
     numeric_summary: NumericSummary | None = None
+
+    @property
+    def role(self) -> str | None:
+        return self.override.role
 
     @property
     def has_outliers(self) -> bool:
@@ -49,20 +61,40 @@ class ColumnProfile:
             + int(self.is_constant)
             + int(self.is_high_cardinality)
             + int(self.has_outliers)
+            + int(self.is_mixed_type)
+            + int(self.parse_failure_pct > 0.0)
         )
 
     @property
     def flags(self) -> list[str]:
         flags: list[str] = []
         if self.flagged_missing:
-            flags.append("missing>30%")
+            flags.append("missing>=30%")
         if self.is_constant:
             flags.append("constant")
         if self.is_high_cardinality:
             flags.append("high-cardinality")
         if self.has_outliers:
             flags.append("outliers")
+        if self.is_mixed_type:
+            flags.append("mixed-type")
+        if self.parse_failure_pct > 0.0:
+            flags.append(f"parse-failures: {self.parse_failure_pct:.1f}%")
         return flags
+
+
+@dataclass(slots=True, frozen=True)
+class HealthScore:
+    value: int
+    badge: str
+    completeness: int
+    uniqueness: int
+    consistency: int
+    stability: int
+
+    @property
+    def css_modifier(self) -> str:
+        return self.badge.lower().replace(" ", "-")
 
 
 @dataclass(slots=True, frozen=True)

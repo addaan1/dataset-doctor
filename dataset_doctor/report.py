@@ -7,18 +7,8 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from dataset_doctor.models import ColumnProfile, DatasetProfile
+from dataset_doctor.models import ColumnProfile, DatasetProfile, HealthScore
 from dataset_doctor.warnings import DatasetWarning
-
-
-@dataclass(slots=True, frozen=True)
-class HealthScore:
-    value: int
-    badge: str
-
-    @property
-    def css_modifier(self) -> str:
-        return self.badge.lower().replace(" ", "-")
 
 
 @dataclass(slots=True, frozen=True)
@@ -65,31 +55,65 @@ def build_report_payload(
 
 
 def calculate_health_score(profile: DatasetProfile) -> HealthScore:
-    penalty = 0
-
-    if any(column.missing_pct >= 50.0 for column in profile.columns):
-        penalty += 20
-    elif any(column.flagged_missing for column in profile.columns):
-        penalty += 10
-
+    # Dimensional Scoring
+    
+    # 1. Completeness: penalize high missing rates
+    comp_penalty = 0
+    for col in profile.columns:
+        if col.missing_pct >= 50.0:
+            comp_penalty += 30
+        elif col.flagged_missing:
+            comp_penalty += 15
+    completeness = max(0, 100 - comp_penalty)
+    
+    # 2. Uniqueness: penalize exact duplicate rows & high cardinality IDs that aren't marked as IDs
+    uniq_penalty = 0
     if profile.duplicate_pct >= 10.0:
-        penalty += 15
+        uniq_penalty += 30
     elif profile.duplicate_rows > 0:
-        penalty += 5
+        uniq_penalty += 10
+        
+    for col in profile.columns:
+        if col.is_high_cardinality and col.role != "id":
+             uniq_penalty += 10
+    uniqueness = max(0, 100 - uniq_penalty)
+             
+    # 3. Consistency: penalize mixed types, constant columns, parse failures
+    cons_penalty = min(len(profile.constant_columns) * 10, 20)
+    for col in profile.columns:
+        if col.is_mixed_type:
+             cons_penalty += 20
+        if col.parse_failure_pct > 0.0:
+             cons_penalty += 20
+    consistency = max(0, 100 - cons_penalty)
+    
+    # 4. Numeric Stability: penalize extreme outliers unless heavy tail is allowed
+    stab_penalty = 0
+    for col in profile.outlier_columns:
+        col_prof = next((c for c in profile.columns if c.name == col), None)
+        if col_prof and col_prof.override.allow_heavy_tail is not True:
+            stab_penalty += 10
+    stability = max(0, 100 - min(stab_penalty, 40))
 
-    penalty += min(len(profile.constant_columns) * 5, 10)
-    penalty += min(len(profile.high_cardinality_columns) * 5, 10)
-    penalty += min(len(profile.outlier_columns) * 5, 15)
+    # Overall Score = Weighted average
+    # Give Completeness and Consistency slightly higher weight for structural safety.
+    overall = int((completeness * 0.3) + (consistency * 0.3) + (uniqueness * 0.2) + (stability * 0.2))
 
-    value = max(0, 100 - penalty)
-    if value >= 80:
+    if overall >= 85:
         badge = "Healthy"
-    elif value >= 50:
+    elif overall >= 60:
         badge = "Needs Review"
     else:
         badge = "Critical"
 
-    return HealthScore(value=value, badge=badge)
+    return HealthScore(
+        value=overall, 
+        badge=badge,
+        completeness=completeness,
+        uniqueness=uniqueness,
+        consistency=consistency,
+        stability=stability
+    )
 
 
 def render_markdown_summary(payload: ReportPayload) -> str:
@@ -108,8 +132,11 @@ def render_markdown_summary(payload: ReportPayload) -> str:
         "",
         "## Health Score",
         "",
-        f"- Score: {payload.score.value}/100",
-        f"- Badge: {payload.score.badge}",
+        f"- Overall: {payload.score.value}/100 ({payload.score.badge})",
+        f"  - Completeness: {payload.score.completeness}/100",
+        f"  - Uniqueness:   {payload.score.uniqueness}/100",
+        f"  - Consistency:  {payload.score.consistency}/100",
+        f"  - Stability:    {payload.score.stability}/100",
         "",
         "## Top Warnings",
         "",
@@ -128,19 +155,19 @@ def render_markdown_summary(payload: ReportPayload) -> str:
             "",
             "## Problematic Columns",
             "",
-            "| Column | Type | Missing % | Unique Ratio | Flags |",
-            "| --- | --- | ---: | ---: | --- |",
+            "| Column | Role | Type | Missing % | Unique Ratio | Flags |",
+            "| --- | --- | --- | ---: | ---: | --- |",
         ]
     )
 
     if payload.problematic_columns:
         for column in payload.problematic_columns:
             lines.append(
-                f"| {column.name} | {column.semantic_type} | {column.missing_pct:.1f}% | "
+                f"| {column.name} | {column.role or '-'} | {column.semantic_type} | {column.missing_pct:.1f}% | "
                 f"{column.unique_ratio:.1%} | {', '.join(column.flags)} |"
             )
     else:
-        lines.append("| None | - | - | - | - |")
+        lines.append("| None | - | - | - | - | - |")
 
     lines.extend(
         [

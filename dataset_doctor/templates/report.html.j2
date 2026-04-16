@@ -158,6 +158,59 @@
     .badge.needs-review { background: var(--warning-soft); color: var(--warning); }
     .badge.critical { background: var(--critical-soft); color: var(--critical); }
 
+    /* Dimensional Score Bars */
+    .score-breakdown {
+      margin-top: 20px;
+      width: 100%;
+      background: rgba(0, 0, 0, 0.2);
+      padding: 16px;
+      border-radius: var(--radius-md);
+    }
+    
+    .score-bar-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    
+    .score-bar-row:last-child {
+      margin-bottom: 0;
+    }
+    
+    .score-bar-label {
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.9);
+      width: 85px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    .score-bar-track {
+      flex: 1;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 99px;
+      margin: 0 12px;
+      overflow: hidden;
+    }
+    
+    .score-bar-fill {
+      height: 100%;
+      border-radius: 99px;
+      background: var(--healthy);
+    }
+    .score-bar-fill.warn { background: var(--warning); }
+    .score-bar-fill.crit { background: var(--critical); }
+    
+    .score-bar-val {
+      font-size: 0.85rem;
+      font-weight: 600;
+      width: 32px;
+      text-align: right;
+      color: white;
+    }
+
     /* Standard Sections */
     .section {
       margin-top: 40px;
@@ -388,13 +441,35 @@
           </div>
         </div>
         <aside class="score-card">
-          <div class="eyebrow">Health Score</div>
-          <div class="score-value">{{ payload.score.value }}</div>
-          <span class="badge {{ payload.score.css_modifier }}">{{ payload.score.badge }}</span>
-          <p style="margin-top: 16px; color: rgba(255, 255, 255, 0.8); font-size: 0.95rem;">
-            {{ payload.profile.suspicious_column_count }} suspicious columns<br/>
-            {{ payload.warnings|length }} generated warnings
-          </p>
+          <div class="eyebrow">Overall Score</div>
+          <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
+            <div class="score-value" style="margin-bottom: 0;">{{ payload.score.value }}</div>
+            <span class="badge {{ payload.score.css_modifier }}">{{ payload.score.badge }}</span>
+          </div>
+          
+          <div class="score-breakdown">
+            <div class="score-bar-row">
+              <div class="score-bar-label">Complete</div>
+              <div class="score-bar-track"><div class="score-bar-fill {% if payload.score.completeness < 60 %}crit{% elif payload.score.completeness < 85 %}warn{% endif %}" style="width: {{ payload.score.completeness }}%;"></div></div>
+              <div class="score-bar-val">{{ payload.score.completeness }}</div>
+            </div>
+            <div class="score-bar-row">
+              <div class="score-bar-label">Unique</div>
+              <div class="score-bar-track"><div class="score-bar-fill {% if payload.score.uniqueness < 60 %}crit{% elif payload.score.uniqueness < 85 %}warn{% endif %}" style="width: {{ payload.score.uniqueness }}%;"></div></div>
+              <div class="score-bar-val">{{ payload.score.uniqueness }}</div>
+            </div>
+            <div class="score-bar-row">
+              <div class="score-bar-label">Consistent</div>
+              <div class="score-bar-track"><div class="score-bar-fill {% if payload.score.consistency < 60 %}crit{% elif payload.score.consistency < 85 %}warn{% endif %}" style="width: {{ payload.score.consistency }}%;"></div></div>
+              <div class="score-bar-val">{{ payload.score.consistency }}</div>
+            </div>
+            <div class="score-bar-row">
+              <div class="score-bar-label">Stable</div>
+              <div class="score-bar-track"><div class="score-bar-fill {% if payload.score.stability < 60 %}crit{% elif payload.score.stability < 85 %}warn{% endif %}" style="width: {{ payload.score.stability }}%;"></div></div>
+              <div class="score-bar-val">{{ payload.score.stability }}</div>
+            </div>
+          </div>
+
         </aside>
       </div>
     </section>
@@ -497,18 +572,24 @@
           <thead>
             <tr>
               <th>Column</th>
+              <th>Role</th>
               <th>Type</th>
               <th>Missing</th>
               <th>Unique Ratio</th>
-              <th>Flags</th>
+              <th>Active Flags</th>
             </tr>
           </thead>
           <tbody>
             {% if payload.problematic_columns %}
               {% for column in payload.problematic_columns %}
                 <tr>
-                  <td style="font-family: monospace; font-size: 1rem;">{{ column.name }}</td>
-                  <td>{{ column.semantic_type }}</td>
+                  <td><strong>{{ column.name }}</strong></td>
+                  <td>{{ column.role or '-' }}</td>
+                  <td>
+                    <span style="font-family: monospace; color: var(--muted); background: var(--surface-subtle); padding: 2px 6px; border-radius: 4px; font-size: 0.85rem;">
+                      {{ column.semantic_type }}
+                    </span>
+                  </td>
                   <td>{{ "%.1f"|format(column.missing_pct) }}%</td>
                   <td>{{ "%.1f"|format(column.unique_ratio * 100) }}%</td>
                   <td>

@@ -12,7 +12,8 @@ def test_report_payload_calculates_expected_score_and_badge() -> None:
     profile = profile_dataset(load_data(csv_path), csv_path.name)
     payload = build_report_payload(profile, generate_warnings(profile), generated_at="2026-04-13 22:00:00")
 
-    assert payload.score.value == 65
+    # Score calculation has changed due to multidimensional system
+    assert payload.score.value == 82
     assert payload.score.badge == "Needs Review"
     assert payload.problematic_columns[0].name == "primary_tag"
     assert payload.numeric_columns[0].name == "tag_count"
@@ -42,7 +43,7 @@ def test_html_report_contains_dashboard_sections() -> None:
     html = render_html_report(payload)
 
     assert "Dataset Doctor Report" in html
-    assert "Health Score" in html
+    assert "Overall Score" in html
     assert "Problematic Columns" in html
     assert "Numeric Findings" in html
     assert "Needs Review" in html

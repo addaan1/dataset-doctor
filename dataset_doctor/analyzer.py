@@ -12,14 +12,12 @@ from pandas.api.types import (
     is_string_dtype,
 )
 
+from dataset_doctor.config import DatasetConfig
 from dataset_doctor.models import ColumnProfile, DatasetProfile, NumericSummary
 
 BOOLEAN_TRUE_VALUES = {"true", "t", "yes", "y", "1"}
 BOOLEAN_FALSE_VALUES = {"false", "f", "no", "n", "0"}
 SEMANTIC_TYPE_ORDER = ("categorical", "numeric", "boolean", "datetime")
-HIGH_MISSING_THRESHOLD_PCT = 30.0
-HIGH_CARDINALITY_THRESHOLD = 0.8
-MIN_VALUES_FOR_OUTLIER_DETECTION = 4
 DATE_HINT_PATTERN = re.compile(
     r"[-/:T]|jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec",
     re.IGNORECASE,
@@ -64,33 +62,70 @@ def load_data(path: str | Path, separator: str = ",", encoding: str = "utf-8") -
     return dataframe
 
 
-def summarize_columns(df: pd.DataFrame) -> list[ColumnProfile]:
+def summarize_columns(df: pd.DataFrame, config: DatasetConfig | None = None) -> list[ColumnProfile]:
+    config = config or DatasetConfig()
     row_count = int(len(df))
     column_profiles: list[ColumnProfile] = []
 
     for column_name in df.columns:
+        col_str = str(column_name)
+        override = config.get_override(col_str)
         series = df[column_name]
+        
         non_null = series.dropna()
         non_null_count = int(non_null.shape[0])
         missing_count = row_count - non_null_count
         missing_pct = (missing_count / row_count * 100) if row_count else 0.0
         unique_count = int(non_null.nunique(dropna=True))
         unique_ratio = (unique_count / non_null_count) if non_null_count else 0.0
-        semantic_type = _infer_semantic_type(series)
+        
+        # Advanced check: Mixed Types
+        is_mixed_type = False
+        if non_null_count > 0 and is_object_dtype(series.dtype):
+            types_in_col = non_null.apply(type).unique()
+            if len(types_in_col) > 1:
+                is_mixed_type = True
+
+        # Semantic Type Inference / Forcing
+        parse_failure_pct = 0.0
+        if override.force_semantic_type:
+            semantic_type = override.force_semantic_type
+            if non_null_count > 0:
+                if semantic_type == "numeric" and not is_numeric_dtype(series):
+                    parsed = pd.to_numeric(non_null, errors="coerce")
+                    failures = parsed.isna().sum()
+                    parse_failure_pct = (failures / non_null_count) * 100
+                elif semantic_type == "datetime" and not is_datetime64_any_dtype(series):
+                    parsed = pd.to_datetime(non_null, errors="coerce", format="mixed")
+                    failures = parsed.isna().sum()
+                    parse_failure_pct = (failures / non_null_count) * 100
+        else:
+            semantic_type = _infer_semantic_type(series)
+            
         numeric_summary = (
             _build_numeric_summary(series) if semantic_type == "numeric" and non_null_count > 0 else None
         )
+        
         is_constant = non_null_count > 0 and unique_count == 1
-        is_high_cardinality = (
-            non_null_count > 0
-            and _is_string_like(series)
-            and semantic_type == "categorical"
-            and unique_ratio > HIGH_CARDINALITY_THRESHOLD
-        )
+        
+        # Determine cardinality constraints
+        card_threshold = config.global_cardinality_threshold
+        if override.allow_high_cardinality is True or override.role in ("id", "target"):
+            is_high_cardinality = False
+        elif override.allow_high_cardinality is False:
+            # Stricter bounds can be set
+            is_high_cardinality = non_null_count > 0 and (unique_ratio > card_threshold)
+        else:
+            is_high_cardinality = (
+                non_null_count > 0
+                and _is_string_like(series)
+                and semantic_type == "categorical"
+                and unique_ratio > card_threshold
+            )
 
         column_profiles.append(
             ColumnProfile(
-                name=str(column_name),
+                name=col_str,
                 raw_dtype=str(series.dtype),
                 semantic_type=semantic_type,
                 non_null_count=non_null_count,
@@ -98,9 +133,12 @@ def summarize_columns(df: pd.DataFrame) -> list[ColumnProfile]:
                 missing_pct=missing_pct,
                 unique_count=unique_count,
                 unique_ratio=unique_ratio,
-                flagged_missing=missing_pct > HIGH_MISSING_THRESHOLD_PCT,
+                flagged_missing=missing_pct >= config.global_missing_threshold,
                 is_constant=is_constant,
                 is_high_cardinality=is_high_cardinality,
+                parse_failure_pct=float(parse_failure_pct),
+                is_mixed_type=is_mixed_type,
+                override=override,
                 numeric_summary=numeric_summary,
             )
         )
@@ -108,8 +146,9 @@ def summarize_columns(df: pd.DataFrame) -> list[ColumnProfile]:
     return column_profiles
 
 
-def profile_dataset(df: pd.DataFrame, source_name: str) -> DatasetProfile:
-    columns = summarize_columns(df)
+def profile_dataset(df: pd.DataFrame, source_name: str, config: DatasetConfig | None = None) -> DatasetProfile:
+    config = config or DatasetConfig()
+    columns = summarize_columns(df, config)
     missing_ranked = sorted(columns, key=lambda column: (-column.missing_count, column.name))
     semantic_type_counts = {semantic_type: 0 for semantic_type in SEMANTIC_TYPE_ORDER}
     for column in columns:
@@ -211,6 +250,9 @@ def _normalize_dataframe(dataframe: pd.DataFrame) -> pd.DataFrame:
 
 def _build_numeric_summary(series: pd.Series) -> NumericSummary:
     values = pd.to_numeric(series.dropna(), errors="coerce").dropna()
+    if values.empty:
+        return NumericSummary(0,0,0,0,0,0,0,0,0,0,0,0.0)
+    
     min_value = float(values.min())
     max_value = float(values.max())
     mean = float(values.mean())
@@ -222,7 +264,8 @@ def _build_numeric_summary(series: pd.Series) -> NumericSummary:
     lower_bound = q1 - 1.5 * iqr
     upper_bound = q3 + 1.5 * iqr
 
-    if values.shape[0] >= MIN_VALUES_FOR_OUTLIER_DETECTION:
+    # We need to detect MIN_VALUES dynamically but using a constant from earlier. Let's hardcode the > 4 bound locally.
+    if values.shape[0] >= 4:
         outlier_mask = (values < lower_bound) | (values > upper_bound)
         outlier_count = int(outlier_mask.sum())
         outlier_pct = float(outlier_count / values.shape[0] * 100)
